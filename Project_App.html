@@ -1,0 +1,2532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HS Project Planner</title>
+<style>
+:root{
+  --bg:#0F1419; --panel:#161B22; --panel2:#1C2128; --border:#2D333B;
+  --text:#E6EDF3; --text-dim:#8B949E; --text-faint:#6E7681;
+  --accent:#3B82F6; --accent-dim:#1E3A5F;
+  --green:#2E7D32; --red:#C62828; --blue:#1565C0; --orange:#E65100; --purple:#6A1B9A;
+  --gantt-row-h:32px; --gantt-day-w:24px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;overflow-x:hidden;}
+body.read-only-mode .btn.primary,
+body.read-only-mode .btn.danger,
+body.read-only-mode input[type="checkbox"],
+body.read-only-mode input[type="number"],
+body.read-only-mode .resize-handle,
+body.read-only-mode .link-handle{
+  pointer-events:none;opacity:0.45;cursor:not-allowed;
+}
+body.read-only-mode .gantt-bar{cursor:default;}
+#readOnlyBanner{
+  background:rgba(230,81,0,0.18);border-bottom:1px solid var(--orange);
+  color:#FFB74D;font-size:12px;padding:6px 16px;text-align:center;display:none;
+}
+body.read-only-mode #readOnlyBanner{display:block;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:6px 8px;font-size:13px;}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--accent);}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;}
+
+/* ===== TOP BAR ===== */
+#topbar{
+  height:52px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:16px;position:sticky;top:0;z-index:200;
+}
+#topbar .logo{font-weight:700;font-size:15px;letter-spacing:0.3px;color:#fff;white-space:nowrap;}
+#topbar .logo span{color:var(--accent);}
+#tabs{display:flex;gap:2px;flex:1;overflow-x:auto;}
+.tab-btn{
+  background:none;border:none;color:var(--text-dim);padding:8px 14px;border-radius:6px;
+  font-size:13px;white-space:nowrap;transition:background 0.15s,color 0.15s;
+}
+.tab-btn:hover{background:var(--panel2);color:var(--text);}
+.tab-btn.active{background:var(--accent-dim);color:#fff;font-weight:600;}
+#apiStatus{font-size:11px;padding:4px 10px;border-radius:10px;white-space:nowrap;}
+#apiStatus.ok{background:rgba(46,125,50,0.2);color:#81C784;}
+#apiStatus.err{background:rgba(198,40,40,0.2);color:#E57373;}
+#apiStatus.pending{background:rgba(230,81,0,0.2);color:#FFB74D;}
+#userBadge{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+
+/* ===== VIEWS ===== */
+.view{display:none;padding:18px;}
+.view.active{display:block;}
+
+/* ===== CARDS / SECTIONS ===== */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px;}
+.card h3{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-dim);}
+.grid{display:grid;gap:14px;}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:1fr 1fr 1fr;}
+.grid-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+@media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+
+/* ===== DASHBOARD STAT CARDS ===== */
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.stat-card{
+  flex:1;min-width:150px;background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;
+}
+.stat-card .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;}
+.stat-card .value{font-size:26px;font-weight:700;color:#fff;}
+.stat-card .sub{font-size:11px;color:var(--text-faint);margin-top:4px;}
+.stat-card.green .value{color:#81C784;}
+.stat-card.red .value{color:#E57373;}
+.stat-card.blue .value{color:#64B5F6;}
+.stat-card.orange .value{color:#FFB74D;}
+
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.badge.on-time{background:rgba(46,125,50,0.2);color:#81C784;}
+.badge.delayed{background:rgba(198,40,40,0.2);color:#E57373;}
+.badge.ahead{background:rgba(21,101,192,0.2);color:#64B5F6;}
+.badge.notstarted{background:rgba(110,118,129,0.2);color:var(--text-dim);}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;padding:8px 10px;background:var(--panel2);color:var(--text-dim);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;}
+td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.tbl-wrap{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px;}
+
+.btn{
+  background:var(--panel2);border:1px solid var(--border);color:var(--text);
+  padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;
+  display:inline-flex;align-items:center;gap:6px;transition:background 0.15s;
+}
+.btn:hover{background:#262C36;}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:#2563EB;}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff;}
+.btn.danger:hover{background:#B71C1C;}
+.btn.sm{padding:4px 10px;font-size:12px;}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.toolbar .spacer{flex:1;}
+.toolbar input[type=search],.toolbar input[type=text]{min-width:200px;}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;
+}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:10px;width:600px;max-width:92vw;max-height:88vh;overflow:auto;padding:22px;}
+.modal h2{font-size:16px;margin-bottom:16px;}
+.modal .field{margin-bottom:12px;}
+.modal label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:4px;}
+.modal .field input,.modal .field select,.modal .field textarea{width:100%;}
+.modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
+.toast{background:#1C2128;border:1px solid var(--border);border-left:4px solid var(--accent);padding:10px 16px;border-radius:6px;font-size:13px;min-width:240px;box-shadow:0 4px 16px rgba(0,0,0,0.4);animation:slideIn 0.2s ease;}
+.toast.success{border-left-color:#2E7D32;}
+.toast.error{border-left-color:#C62828;}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+.empty-state{text-align:center;padding:50px 20px;color:var(--text-dim);}
+.empty-state .icon{font-size:36px;margin-bottom:10px;opacity:0.5;}
+
+.short-desc-row{cursor:pointer;}
+.long-desc-popover{
+  display:none;background:var(--panel2);border:1px solid var(--accent);border-radius:6px;
+  padding:10px 12px;margin-top:4px;font-size:12px;color:var(--text-dim);max-width:480px;white-space:normal;
+}
+.long-desc-popover.open{display:block;}
+
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:2px 10px 2px 6px;font-size:11px;margin:2px;}
+.chip .x{cursor:pointer;color:var(--text-faint);}
+.chip .x:hover{color:#E57373;}
+
+/* ===== GANTT ===== */
+#ganttWrap{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+#ganttGrid{width:340px;flex-shrink:0;border-right:1px solid var(--border);overflow:hidden;}
+#ganttScroll{flex:1;overflow:auto;position:relative;}
+.gantt-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.gantt-row-label{
+  height:var(--gantt-row-h);display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--border);
+  font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;gap:6px;
+}
+.gantt-row-label .id-badge{font-size:10px;color:var(--text-faint);background:var(--panel2);padding:1px 5px;border-radius:3px;flex-shrink:0;}
+.gantt-header-row{height:40px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--text-dim);font-weight:600;}
+.gantt-day-header{height:40px;display:flex;border-bottom:1px solid var(--border);background:var(--panel2);position:sticky;top:0;z-index:5;}
+.gantt-day-cell{flex-shrink:0;border-right:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim);}
+.gantt-body-row{height:var(--gantt-row-h);position:relative;border-bottom:1px solid var(--border);}
+.gantt-bar{
+  position:absolute;top:5px;height:calc(var(--gantt-row-h) - 10px);border-radius:4px;cursor:grab;
+  display:flex;align-items:center;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;
+  box-shadow:0 1px 3px rgba(0,0,0,0.3);user-select:none;
+}
+.gantt-bar.dragging{cursor:grabbing;opacity:0.85;z-index:50;}
+.gantt-bar .progress-fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,0.35);border-radius:4px 0 0 4px;}
+.gantt-bar .bar-label{position:relative;padding:0 6px;z-index:2;font-weight:600;}
+.gantt-bar .resize-handle{position:absolute;top:0;bottom:0;width:6px;cursor:ew-resize;z-index:3;}
+.gantt-bar .resize-handle.left{left:0;}
+.gantt-bar .resize-handle.right{right:0;}
+.gantt-bar .link-handle{
+  position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--accent);
+  cursor:crosshair;z-index:10;top:50%;transform:translateY(-50%);
+}
+.gantt-bar .link-handle.right{right:-5px;}
+.gantt-bar .link-handle.left{left:-5px;}
+.gantt-baseline-bar{position:absolute;height:5px;border-radius:3px;background:#9C6F00;opacity:0.85;z-index:1;}
+.gantt-milestone{
+  position:absolute;top:4px;width:0;height:0;
+  border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:16px solid #B388FF;
+  transform:translateX(-9px);cursor:pointer;
+}
+.gantt-event-band{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(255,183,77,0.15),rgba(255,183,77,0.15) 6px,transparent 6px,transparent 12px);border-left:1px dashed #FFB74D;border-right:1px dashed #FFB74D;z-index:0;}
+.gantt-today-line{position:absolute;top:0;bottom:0;width:2px;background:#E57373;z-index:4;}
+.gantt-link-line{position:absolute;pointer-events:none;z-index:6;}
+
+.zoom-controls{display:flex;align-items:center;gap:4px;}
+.zoom-controls button{width:28px;height:28px;border-radius:4px;}
+
+.color-swatch{width:14px;height:14px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.2);}
+
+.delay-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">HS <span>Project Planner</span></div>
+  <div id="tabs">
+    <button class="tab-btn active" data-view="dashboard">Dashboard</button>
+    <button class="tab-btn" data-view="boq">BOQ</button>
+    <button class="tab-btn" data-view="activities">Activities &amp; Gantt</button>
+    <button class="tab-btn" data-view="events">Events &amp; milestones</button>
+    <button class="tab-btn" data-view="baselines">Baselines</button>
+    <button class="tab-btn" data-view="recyclebin">Recycle bin</button>
+    <button class="tab-btn" data-view="users">Users &amp; setup</button>
+  </div>
+  <span id="apiStatus" class="pending">Connecting…</span>
+  <span id="userBadge">Not signed in</span>
+</div>
+<div id="readOnlyBanner">👁 You're viewing this project in read-only mode. Changes you make here won't be saved.</div>
+
+<div id="root"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/* =====================================================================
+   HS PROJECT PLANNER — FRONTEND
+   =====================================================================
+   IMPORTANT — read this once:
+   This single HTML file now serves EVERY one of your projects. Paste
+   your ONE shared router Web App URL below (see ProjectRouter_Code.gs)
+   — you only ever do this once, total, not once per project.
+
+   Each project is opened via a link that looks like:
+     https://.../Project_App.html?key=AbC123XyZ987...
+   The `key` comes from the Portfolio dashboard (one key per project,
+   per access level — owner/contractor/client-view/client-edit). The
+   frontend reads it from its own URL automatically below; you never
+   type it in here.
+   ===================================================================== */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbziFrnPjxjdx9JzFtrGvyvQ4lC06mlEFN3QFXIPJ4-iiZrZNiWXceSLHtFsgSKOKKKs8g/exec',
+  DAY_WIDTH: { day: 24, week: 10, month: 4 },
+  PROJECT_KEY: new URLSearchParams(window.location.search).get('key') || '',
+};
+
+let STATE = {
+  user: localStorage.getItem('hsp_user') || '',
+  activities: [],
+  boq: [],
+  links: [],
+  baselines: [],
+  events: [],
+  projectInfo: {},
+  users: [],
+  colors: [],
+  preAward: [],
+  currentView: 'dashboard',
+  ganttZoom: 'week', // day | week | month
+  ganttColorFilter: null,
+  searchTerm: '',
+  apiReady: false,
+  accessLevel: 'Owner', // 'Owner' | 'Contractor' | 'ClientView' | 'ClientEdit' — set after first load
+  readOnly: false,
+};
+
+/* ---------------- API LAYER ---------------- */
+async function apiGet(action, params) {
+  params = params || {};
+  const qs = new URLSearchParams({ action, key: CONFIG.PROJECT_KEY, ...params }).toString();
+  const res = await fetch(`${CONFIG.API_URL}?${qs}`);
+  return res.json();
+}
+async function apiPost(action, body) {
+  if (STATE.readOnly) {
+    showToast('This is a view-only link. Changes cannot be saved.', 'error');
+    return { success: false, error: 'Read-only link' };
+  }
+  const res = await fetch(`${CONFIG.API_URL}?action=${action}&key=${encodeURIComponent(CONFIG.PROJECT_KEY)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight on Apps Script
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+function setApiStatus(state, text) {
+  const el = document.getElementById('apiStatus');
+  el.className = state;
+  el.textContent = text;
+}
+
+async function loadAll() {
+  if (!CONFIG.PROJECT_KEY) {
+    setApiStatus('err', 'No project key in link');
+    document.getElementById('root').innerHTML = `
+      <div class="card" style="margin:40px auto;max-width:600px;">
+        <h3>No project selected</h3>
+        <p style="color:var(--text-dim);">
+          This link is missing a project key. Open this project from the
+          Portfolio dashboard instead of opening this file directly — the
+          Portfolio generates the correct link (with <code>?key=...</code>)
+          for you, for each project and each person you share it with.
+        </p>
+      </div>`;
+    return;
+  }
+  setApiStatus('pending', 'Loading data…');
+  try {
+    const res = await apiGet('getAll');
+    if (!res.success) throw new Error(res.error || 'Unknown error');
+    STATE.activities = res.data.activities || [];
+    STATE.boq = res.data.boq || [];
+    STATE.links = res.data.links || [];
+    STATE.baselines = res.data.baselines || [];
+    STATE.events = res.data.events || [];
+    STATE.projectInfo = res.data.projectInfo || {};
+    STATE.users = res.data.users || [];
+    STATE.colors = res.data.colors || [];
+    STATE.preAward = res.data.preAward || [];
+    STATE.accessLevel = res.accessLevel || 'Owner';
+    STATE.readOnly = (STATE.accessLevel === 'ClientView');
+    STATE.apiReady = true;
+    setApiStatus('ok', 'Connected' + (STATE.readOnly ? ' (view only)' : ''));
+    updateAccessLevelBadge();
+    renderCurrentView();
+  } catch (err) {
+    setApiStatus('err', 'Connection failed');
+    document.getElementById('root').innerHTML = `
+      <div class="card" style="margin:40px auto;max-width:600px;">
+        <h3>Couldn't open this project</h3>
+        <p style="color:var(--text-dim);">${err.message}</p>
+        <p style="color:var(--text-faint);font-size:12px;margin-top:8px;">
+          If you believe this link should work, ask the project owner to
+          check it hasn't been archived or regenerated from the Portfolio
+          dashboard.
+        </p>
+      </div>`;
+  }
+}
+function updateAccessLevelBadge() {
+  const badge = document.getElementById('userBadge');
+  if (!badge) return;
+  const levelLabel = { Owner: '', Contractor: ' · Contractor view', ClientView: ' · Client (view only)', ClientEdit: ' · Client (edit)' }[STATE.accessLevel] || '';
+  badge.textContent = (STATE.user ? ('Signed in as ' + STATE.user) : 'Not signed in') + levelLabel;
+  document.body.classList.toggle('read-only-mode', STATE.readOnly);
+}
+
+/* ---------------- TOASTS ---------------- */
+function showToast(msg, type) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || '');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+/* ---------------- USER ---------------- */
+function ensureUser() {
+  if (!STATE.user) {
+    const name = prompt('Enter your name to start using HS Project Planner:');
+    if (name) {
+      STATE.user = name;
+      localStorage.setItem('hsp_user', name);
+    }
+  }
+  document.getElementById('userBadge').textContent = STATE.user ? ('Signed in as ' + STATE.user) : 'Not signed in';
+}
+
+/* ---------------- TAB NAVIGATION ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    STATE.currentView = btn.dataset.view;
+    renderCurrentView();
+  });
+});
+
+function renderCurrentView() {
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+  const view = document.createElement('div');
+  view.className = 'view active';
+  root.appendChild(view);
+  switch (STATE.currentView) {
+    case 'dashboard': renderDashboard(view); break;
+    case 'boq': renderBOQ(view); break;
+    case 'activities': renderActivitiesAndGantt(view); break;
+    case 'events': renderEvents(view); break;
+    case 'baselines': renderBaselines(view); break;
+    case 'recyclebin': renderRecycleBin(view); break;
+    case 'users': renderUsers(view); break;
+  }
+}
+
+/* ---------------- UTILS ---------------- */
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function daysBetween(a, b) {
+  if (!a || !b) return null;
+  const d1 = new Date(a), d2 = new Date(b);
+  return Math.round((d2 - d1) / 86400000);
+}
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function uid(prefix) { return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 9999); }
+
+function getDelayStatus(act) {
+  // returns {label, cssClass} based on planned vs actual
+  if (act.PercentComplete >= 100) {
+    if (act.ActualFinish && act.PlannedFinish) {
+      const diff = daysBetween(act.PlannedFinish, act.ActualFinish);
+      if (diff > 0) return { label: 'Completed late', cls: 'delayed' };
+      if (diff < 0) return { label: 'Completed early', cls: 'ahead' };
+      return { label: 'Completed on time', cls: 'on-time' };
+    }
+    return { label: 'Completed', cls: 'on-time' };
+  }
+  if (!act.ActualStart) {
+    const planned = new Date(act.PlannedStart);
+    if (planned < new Date() && act.PlannedStart) return { label: 'Not started (overdue)', cls: 'delayed' };
+    return { label: 'Not started', cls: 'notstarted' };
+  }
+  // in progress: compare expected % vs actual %
+  const today = new Date();
+  const ps = new Date(act.PlannedStart), pf = new Date(act.PlannedFinish);
+  if (ps && pf && !isNaN(ps) && !isNaN(pf)) {
+    const totalDur = (pf - ps) / 86400000;
+    const elapsed = (today - ps) / 86400000;
+    const expectedPct = totalDur > 0 ? Math.min(100, Math.max(0, (elapsed / totalDur) * 100)) : 0;
+    const actualPct = Number(act.PercentComplete) || 0;
+    if (actualPct >= expectedPct + 3) return { label: 'Ahead of schedule', cls: 'ahead' };
+    if (actualPct <= expectedPct - 3) return { label: 'Delayed', cls: 'delayed' };
+    return { label: 'On track', cls: 'on-time' };
+  }
+  return { label: 'In progress', cls: 'on-time' };
+}
+
+function autoShortDescription(longDesc, maxLen) {
+  // Rule-based shortener — no AI call needed.
+  // Strategy: strip leading codes/numbers, cut at first strong punctuation,
+  // otherwise truncate at word boundary near maxLen.
+  maxLen = maxLen || 60;
+  if (!longDesc) return '';
+  let s = String(longDesc).trim();
+  s = s.replace(/^\s*[\d.\-A-Za-z]{1,8}[\)\.:\-]\s*/, ''); // strip leading "1.2.3)" style codes
+  // try cutting at first period/semicolon/comma after 15 chars
+  const cutMatch = s.slice(15).search(/[.;,]/);
+  if (cutMatch > -1 && cutMatch + 15 < maxLen + 25) {
+    return s.slice(0, cutMatch + 15).trim();
+  }
+  if (s.length <= maxLen) return s;
+  const truncated = s.slice(0, maxLen);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 20 ? truncated.slice(0, lastSpace) : truncated) + '…';
+}
+
+function getActivityById(id) { return STATE.activities.find(a => a.ActivityID === id); }
+function getBOQById(id) { return STATE.boq.find(b => b.BOQItemID === id); }
+
+/* ---------------- MODAL HELPERS ---------------- */
+function openModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+
+/* Prevents the classic "double-click on Save creates two rows" bug.
+   Wrap any async save handler call with guardedClick(event, fn) and the
+   button instantly disables itself on first click, so a second click
+   before the network response arrives does nothing. Re-enables itself
+   automatically once the save finishes (success or failure) in case the
+   modal stays open for a validation error. */
+function guardedClick(event, fn) {
+  const btn = event.currentTarget || event.target;
+  if (btn.dataset.busy === '1') return; // already in flight, ignore
+  btn.dataset.busy = '1';
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  Promise.resolve(fn()).finally(() => {
+    // modal may have closed and removed the button already — guard for that
+    if (btn && btn.isConnected) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      btn.dataset.busy = '0';
+    }
+  });
+}
+
+function confirmDialog(message, onConfirm) {
+  openModal(`
+    <h2>Confirm action</h2>
+    <p style="color:var(--text-dim);margin-bottom:18px;">${message}</p>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn danger" id="confirmYesBtn">Yes, proceed</button>
+    </div>
+  `);
+  document.getElementById('confirmYesBtn').onclick = () => { closeModal(); onConfirm(); };
+}
+
+/* ---------------- INIT ---------------- */
+window.addEventListener('DOMContentLoaded', () => {
+  ensureUser();
+  if (CONFIG.API_URL.indexOf('PASTE_YOUR') === 0) {
+    setApiStatus('err', 'API URL not set');
+    document.getElementById('root').innerHTML = `
+      <div class="card" style="margin:40px auto;max-width:600px;">
+        <h3>Setup required</h3>
+        <p style="color:var(--text-dim);margin-bottom:10px;">
+          This app needs to be connected to your Google Sheet backend.
+          Open this HTML file in a text editor, find <code>CONFIG.API_URL</code>
+          near the top of the script, and paste in your Apps Script Web App URL.
+        </p>
+        <p style="color:var(--text-dim);">See the setup guide provided alongside this file for exact steps.</p>
+      </div>`;
+    return;
+  }
+  loadAll();
+});
+</script>
+<script>
+/* =====================================================================
+   DASHBOARD VIEW
+   ===================================================================== */
+function renderDashboard(container) {
+  const acts = STATE.activities.filter(a => a.Type === 'task');
+  const total = acts.length;
+  const completed = acts.filter(a => Number(a.PercentComplete) >= 100).length;
+  const inProgress = acts.filter(a => Number(a.PercentComplete) > 0 && Number(a.PercentComplete) < 100).length;
+  const notStarted = total - completed - inProgress;
+
+  let delayed = 0, onTime = 0, ahead = 0;
+  acts.forEach(a => {
+    const st = getDelayStatus(a);
+    if (st.cls === 'delayed') delayed++;
+    else if (st.cls === 'ahead') ahead++;
+    else if (st.cls === 'on-time') onTime++;
+  });
+
+  const overallPct = total > 0
+    ? (acts.reduce((sum, a) => sum + (Number(a.PercentComplete) || 0) * (Number(a.WeightFactor) || 1), 0) /
+       acts.reduce((sum, a) => sum + (Number(a.WeightFactor) || 1), 0)).toFixed(1)
+    : 0;
+
+  const boqTotal = STATE.boq.reduce((s, b) => s + (Number(b.Amount) || 0), 0);
+  const info = STATE.projectInfo;
+
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">${info.ProjectName || 'Project'} Dashboard</h2>
+      <div class="spacer"></div>
+      <button class="btn" onclick="openProjectInfoModal()">Edit project brief</button>
+      <button class="btn" onclick="exportFullReport()">Export report</button>
+      <button class="btn" onclick="window.print()">Print dashboard</button>
+    </div>
+
+    ${!info.ProjectName && !info.ContractorName ? `
+    <div class="card" style="border-color:var(--accent);background:rgba(59,130,246,0.08);">
+      <h3 style="color:var(--accent);">Get started</h3>
+      <p style="color:var(--text-dim);margin-bottom:10px;">
+        This project's brief is empty. Click below to add the contractor, consultant, client,
+        floors, key features and dates — they'll appear across this dashboard once saved.
+      </p>
+      <button class="btn primary" onclick="openProjectInfoModal()">Fill in project brief now</button>
+    </div>` : ''}
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="label">Overall progress</div>
+        <div class="value">${overallPct}%</div>
+        <div class="sub">${completed} of ${total} activities complete</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">On time</div>
+        <div class="value">${onTime}</div>
+        <div class="sub">activities tracking to plan</div>
+      </div>
+      <div class="stat-card red">
+        <div class="label">Delayed</div>
+        <div class="value">${delayed}</div>
+        <div class="sub">activities behind schedule</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="label">Ahead of schedule</div>
+        <div class="value">${ahead}</div>
+        <div class="sub">activities running ahead</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="label">Not started</div>
+        <div class="value">${notStarted}</div>
+        <div class="sub">activities pending kickoff</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Progress by group <span style="float:right;font-weight:400;color:var(--text-faint);">% complete, weighted</span></h3>
+        <canvas id="chartGroupProgress" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>Schedule health <span style="float:right;font-weight:400;color:var(--text-faint);">activity count</span></h3>
+        <canvas id="chartScheduleHealth" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Planned vs actual progress (S-curve)</h3>
+        <canvas id="chartSCurve" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>BOQ value by group</h3>
+        <canvas id="chartBOQByGroup" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Project dates
+          <button class="btn sm" style="float:right;" onclick="openAddProjectRevisionModal()">+ Add revised date</button>
+        </h3>
+        ${renderProjectDatesTable()}
+      </div>
+      <div class="card">
+        <h3>Project brief
+          <button class="btn sm" style="float:right;" onclick="openProjectInfoModal()">✎ Edit</button>
+        </h3>
+        <table>
+          <tr><td style="color:var(--text-dim)">Project code</td><td>${info.ProjectCode || '<span style="color:var(--text-faint)">click Edit to set</span>'}</td></tr>
+          <tr><td style="color:var(--text-dim)">Number of floors</td><td>${info.NumberOfFloors || '<span style="color:var(--text-faint)">click Edit to set</span>'}</td></tr>
+          <tr><td style="color:var(--text-dim)">Contractor</td><td>${info.ContractorName || '<span style="color:var(--text-faint)">click Edit to set</span>'}</td></tr>
+          <tr><td style="color:var(--text-dim)">Consultant</td><td>${info.ConsultantName || '<span style="color:var(--text-faint)">click Edit to set</span>'}</td></tr>
+          <tr><td style="color:var(--text-dim)">Client</td><td>${info.ClientName || '<span style="color:var(--text-faint)">click Edit to set</span>'}</td></tr>
+          <tr><td style="color:var(--text-dim)">Mobilization date</td><td>${fmtDate(info.MobilizationDate)}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>BOQ summary</h3>
+        <table>
+          <tr><td style="color:var(--text-dim)">Total BOQ items</td><td>${STATE.boq.length}</td></tr>
+          <tr><td style="color:var(--text-dim)">Total contract value</td><td>${boqTotal.toLocaleString(undefined,{maximumFractionDigits:2})}</td></tr>
+          <tr><td style="color:var(--text-dim)">Linked to activities</td><td>${STATE.boq.filter(b=>b.LinkedActivityIDs).length}</td></tr>
+          <tr><td style="color:var(--text-dim)">Unlinked items</td><td>${STATE.boq.filter(b=>!b.LinkedActivityIDs).length}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Key features &amp; quality
+          <button class="btn sm" style="float:right;" onclick="openProjectInfoModal()">✎ Edit</button>
+        </h3>
+        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Key features:</b> ${info.KeyFeatures || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Quality points highlighted:</b> ${info.QualityPointsHighlighted || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+        <p style="color:var(--text-dim);"><b style="color:var(--text)">Punch list summary:</b> ${info.PunchListSummary || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Site visits</h3>
+      <div id="siteVisitsList"></div>
+      <button class="btn sm" onclick="openSiteVisitModal()" style="margin-top:8px;">+ Add site visit record</button>
+    </div>
+
+    <div class="card">
+      <h3>Upcoming &amp; active non-progress events</h3>
+      ${renderUpcomingEventsTable()}
+    </div>
+
+    <div class="card">
+      <h3>Pre-award stage (future link)</h3>
+      <p style="color:var(--text-dim);">
+        This section will link to a separate pre-award tracking dashboard (HTML file),
+        matched by Project Code <b>${info.ProjectCode || '(not set)'}</b> or Project Name
+        <b>${info.ProjectName || '(not set)'}</b>. Not yet active — placeholder for future integration.
+      </p>
+      <div id="preAwardSummary" style="margin-top:10px;"></div>
+    </div>
+  `;
+  renderSiteVisitsList();
+  renderPreAwardSummary();
+  renderDashboardCharts(acts);
+}
+
+/* ---- Dashboard charts ---- */
+let _dashboardChartInstances = [];
+function renderDashboardCharts(acts) {
+  // destroy old instances before redrawing, or Chart.js leaks canvases on every re-render
+  _dashboardChartInstances.forEach(c => c.destroy());
+  _dashboardChartInstances = [];
+
+  const chartTextColor = '#8B949E';
+  const gridColor = 'rgba(255,255,255,0.06)';
+  Chart.defaults.color = chartTextColor;
+  Chart.defaults.borderColor = gridColor;
+  Chart.defaults.font.size = 11;
+
+  // 1. Progress by group — weighted average % complete per Group1
+  const groupMap = {};
+  acts.forEach(a => {
+    const g = a.Group1 || 'Ungrouped';
+    if (!groupMap[g]) groupMap[g] = { sum: 0, weight: 0 };
+    groupMap[g].sum += (Number(a.PercentComplete) || 0) * (Number(a.WeightFactor) || 1);
+    groupMap[g].weight += (Number(a.WeightFactor) || 1);
+  });
+  const groupLabels = Object.keys(groupMap);
+  const groupValues = groupLabels.map(g => groupMap[g].weight > 0 ? (groupMap[g].sum / groupMap[g].weight) : 0);
+  const ctx1 = document.getElementById('chartGroupProgress');
+  if (ctx1) {
+    if (groupLabels.length === 0) {
+      ctx1.parentElement.innerHTML = '<div class="empty-state">No grouped activities yet.</div>';
+    } else {
+      _dashboardChartInstances.push(new Chart(ctx1, {
+        type: 'bar',
+        data: { labels: groupLabels, datasets: [{ data: groupValues, backgroundColor: '#3B82F6', borderRadius: 4, maxBarThickness: 32 }] },
+        options: {
+          indexAxis: 'y', plugins: { legend: { display: false } },
+          scales: { x: { min: 0, max: 100, grid: { color: gridColor }, ticks: { callback: v => v + '%' } }, y: { grid: { display: false } } }
+        }
+      }));
+    }
+  }
+
+  // 2. Schedule health donut — on time / delayed / ahead / not started
+  let d=0,o=0,ah=0,ns=0;
+  acts.forEach(a => {
+    const st = getDelayStatus(a);
+    if (st.cls === 'delayed') d++; else if (st.cls === 'ahead') ah++; else if (st.cls === 'on-time') o++; else ns++;
+  });
+  const ctx2 = document.getElementById('chartScheduleHealth');
+  if (ctx2) {
+    if (acts.length === 0) {
+      ctx2.parentElement.innerHTML = '<div class="empty-state">No activities yet.</div>';
+    } else {
+      _dashboardChartInstances.push(new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+          labels: ['On time', 'Delayed', 'Ahead', 'Not started'],
+          datasets: [{ data: [o, d, ah, ns], backgroundColor: ['#2E7D32', '#C62828', '#1565C0', '#6E7681'], borderWidth: 0 }]
+        },
+        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+      }));
+    }
+  }
+
+  // 3. S-curve — planned cumulative % vs actual cumulative %, by week, across the project's date range
+  const ctx3 = document.getElementById('chartSCurve');
+  if (ctx3) {
+    const dated = acts.filter(a => a.PlannedStart && a.PlannedFinish);
+    if (dated.length === 0) {
+      ctx3.parentElement.innerHTML = '<div class="empty-state">Add planned start/finish dates to activities to see the S-curve.</div>';
+    } else {
+      const allStarts = dated.map(a => new Date(a.PlannedStart));
+      const allFinishes = dated.map(a => new Date(a.PlannedFinish));
+      const rangeStart = new Date(Math.min(...allStarts));
+      const rangeEnd = new Date(Math.max(...allFinishes, new Date()));
+      const totalWeight = dated.reduce((s, a) => s + (Number(a.WeightFactor) || 1), 0) || 1;
+      const weeks = [];
+      let cursor = new Date(rangeStart);
+      while (cursor <= rangeEnd) { weeks.push(new Date(cursor)); cursor.setDate(cursor.getDate() + 7); }
+      const plannedCum = [], actualCum = [];
+      weeks.forEach(weekDate => {
+        let plannedDone = 0, actualDone = 0;
+        dated.forEach(a => {
+          const ps = new Date(a.PlannedStart), pf = new Date(a.PlannedFinish);
+          const w = Number(a.WeightFactor) || 1;
+          if (weekDate >= pf) plannedDone += w;
+          else if (weekDate > ps) plannedDone += w * ((weekDate - ps) / (pf - ps));
+          if (a.ActualFinish && weekDate >= new Date(a.ActualFinish)) actualDone += w;
+          else if (weekDate >= new Date()) actualDone += w * (Number(a.PercentComplete) || 0) / 100;
+        });
+        plannedCum.push(+(plannedDone / totalWeight * 100).toFixed(1));
+        actualCum.push(+(actualDone / totalWeight * 100).toFixed(1));
+      });
+      _dashboardChartInstances.push(new Chart(ctx3, {
+        type: 'line',
+        data: {
+          labels: weeks.map(w => w.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })),
+          datasets: [
+            { label: 'Planned', data: plannedCum, borderColor: '#64B5F6', backgroundColor: 'transparent', tension: 0.2 },
+            { label: 'Actual', data: actualCum, borderColor: '#81C784', backgroundColor: 'transparent', tension: 0.2 },
+          ]
+        },
+        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }, scales: { y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { callback: v => v + '%' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } } } }
+      }));
+    }
+  }
+
+  // 4. BOQ value by group
+  const ctx4 = document.getElementById('chartBOQByGroup');
+  if (ctx4) {
+    const boqGroupMap = {};
+    STATE.boq.forEach(b => {
+      const g = b.Group1 || 'Ungrouped';
+      boqGroupMap[g] = (boqGroupMap[g] || 0) + (Number(b.Amount) || 0);
+    });
+    const boqLabels = Object.keys(boqGroupMap);
+    if (boqLabels.length === 0) {
+      ctx4.parentElement.innerHTML = '<div class="empty-state">No BOQ items yet.</div>';
+    } else {
+      const palette = ['#3B82F6','#2E7D32','#C62828','#E65100','#6A1B9A','#00838F','#9E9D24','#5D4037'];
+      _dashboardChartInstances.push(new Chart(ctx4, {
+        type: 'pie',
+        data: { labels: boqLabels, datasets: [{ data: boqLabels.map(g => boqGroupMap[g]), backgroundColor: palette }] },
+        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10 } } } }
+      }));
+    }
+  }
+}
+
+function renderProjectDatesTable() {
+  const info = STATE.projectInfo;
+  // Pull all baseline "project-level" markers: agreed + every revision
+  const projectBaselineRows = STATE.baselines.filter(b => !b.ActivityID || b.ActivityID === '__PROJECT__');
+  let rows = `
+    <tr><td style="color:var(--text-dim)">Agreed start</td><td>${fmtDate(info.AgreedStartDate)}</td></tr>
+    <tr><td style="color:var(--text-dim)">Agreed finish</td><td>${fmtDate(info.AgreedFinishDate)}</td></tr>
+    <tr><td style="color:var(--text-dim)">Current revised finish</td><td>${fmtDate(info.CurrentRevisedFinishDate)}</td></tr>
+  `;
+  projectBaselineRows.forEach(b => {
+    rows += `<tr><td style="color:var(--text-dim)">${b.BaselineName}</td><td>${fmtDate(b.BaselineStart)} → ${fmtDate(b.BaselineFinish)} <span style="color:var(--text-faint)">(${b.Reason || ''})</span></td></tr>`;
+  });
+  return `<table>${rows}</table>
+    <button class="btn sm" onclick="openAddProjectRevisionModal()" style="margin-top:10px;">+ Add revised date</button>`;
+}
+
+function renderUpcomingEventsTable() {
+  const evs = STATE.events.filter(e => e.EventType !== 'ProjectFinish').slice().sort((a,b) => new Date(a.StartDate) - new Date(b.StartDate));
+  if (evs.length === 0) return `<div class="empty-state">No events recorded yet.</div>`;
+  let rows = evs.map(e => `
+    <tr>
+      <td>${e.EventName}</td>
+      <td>${e.EventType}</td>
+      <td>${fmtDate(e.StartDate)}</td>
+      <td>${fmtDate(e.EndDate)}</td>
+      <td><span class="badge ${e.ResponsibleParty === 'Contractor' ? 'delayed' : e.ResponsibleParty === 'Client' ? 'ahead' : 'notstarted'}">${e.ResponsibleParty || '—'}</span></td>
+    </tr>`).join('');
+  return `<div class="tbl-wrap"><table>
+    <tr><th>Event</th><th>Type</th><th>Start</th><th>End</th><th>Responsibility</th></tr>
+    ${rows}
+  </table></div>`;
+}
+
+function renderSiteVisitsList() {
+  const el = document.getElementById('siteVisitsList');
+  if (!el) return;
+  const visits = JSON.parse(STATE.projectInfo.SiteVisitsJSON || '[]');
+  if (visits.length === 0) { el.innerHTML = `<div class="empty-state">No site visits recorded.</div>`; return; }
+  el.innerHTML = `<div class="tbl-wrap"><table>
+    <tr><th>Date</th><th>Visitor name</th><th>Designation</th><th>Notes</th></tr>
+    ${visits.map(v => `<tr><td>${fmtDate(v.date)}</td><td>${v.name}</td><td>${v.designation}</td><td>${v.notes||''}</td></tr>`).join('')}
+  </table></div>`;
+}
+
+function renderPreAwardSummary() {
+  const el = document.getElementById('preAwardSummary');
+  if (!el) return;
+  if (STATE.preAward.length === 0) {
+    el.innerHTML = `<div class="empty-state">No pre-award stage data linked yet.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="tbl-wrap"><table>
+    <tr><th>Stage</th><th>Planned date</th><th>Actual date</th><th>Status</th></tr>
+    ${STATE.preAward.map(p => `<tr><td>${p.StageName}</td><td>${fmtDate(p.PlannedDate)}</td><td>${fmtDate(p.ActualDate)}</td><td>${p.Status}</td></tr>`).join('')}
+  </table></div>`;
+}
+
+function openSiteVisitModal() {
+  openModal(`
+    <h2>Add site visit record</h2>
+    <div class="field"><label>Date</label><input type="date" id="svDate" value="${todayISO()}"></div>
+    <div class="field"><label>Visitor name</label><input type="text" id="svName" placeholder="e.g. John Smith"></div>
+    <div class="field"><label>Designation</label><input type="text" id="svDesignation" placeholder="e.g. Client Project Director"></div>
+    <div class="field"><label>Notes / observations</label><textarea id="svNotes" rows="3"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveSiteVisit())">Save visit</button>
+    </div>
+  `);
+}
+async function saveSiteVisit() {
+  const visits = JSON.parse(STATE.projectInfo.SiteVisitsJSON || '[]');
+  visits.push({
+    date: document.getElementById('svDate').value,
+    name: document.getElementById('svName').value,
+    designation: document.getElementById('svDesignation').value,
+    notes: document.getElementById('svNotes').value,
+  });
+  STATE.projectInfo.SiteVisitsJSON = JSON.stringify(visits);
+  await apiPost('saveProjectInfo', { user: STATE.user, info: { SiteVisitsJSON: STATE.projectInfo.SiteVisitsJSON } });
+  closeModal();
+  showToast('Site visit recorded', 'success');
+  renderDashboard(document.querySelector('.view'));
+}
+
+function openProjectInfoModal() {
+  const info = STATE.projectInfo;
+  openModal(`
+    <h2>Edit project brief</h2>
+    <div class="grid grid-2">
+      <div class="field"><label>Project name</label><input id="piName" value="${info.ProjectName||''}"></div>
+      <div class="field"><label>Project code</label><input id="piCode" value="${info.ProjectCode||''}"></div>
+      <div class="field"><label>Number of floors</label><input id="piFloors" value="${info.NumberOfFloors||''}"></div>
+      <div class="field"><label>Contractor name</label><input id="piContractor" value="${info.ContractorName||''}"></div>
+      <div class="field"><label>Consultant name</label><input id="piConsultant" value="${info.ConsultantName||''}"></div>
+      <div class="field"><label>Client name</label><input id="piClient" value="${info.ClientName||''}"></div>
+      <div class="field"><label>Agreed start date</label><input type="date" id="piAgreedStart" value="${(info.AgreedStartDate||'').slice(0,10)}"></div>
+      <div class="field"><label>Agreed finish date</label><input type="date" id="piAgreedFinish" value="${(info.AgreedFinishDate||'').slice(0,10)}"></div>
+      <div class="field"><label>Current revised finish</label><input type="date" id="piRevisedFinish" value="${(info.CurrentRevisedFinishDate||'').slice(0,10)}"></div>
+      <div class="field"><label>Mobilization date</label><input type="date" id="piMobilization" value="${(info.MobilizationDate||'').slice(0,10)}"></div>
+    </div>
+    <div class="field"><label>Key project features</label><textarea id="piFeatures" rows="2">${info.KeyFeatures||''}</textarea></div>
+    <div class="field"><label>Quality points highlighted</label><textarea id="piQuality" rows="2">${info.QualityPointsHighlighted||''}</textarea></div>
+    <div class="field"><label>Punch list summary</label><textarea id="piPunch" rows="2">${info.PunchListSummary||''}</textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveProjectInfoModal())">Save</button>
+    </div>
+  `);
+}
+async function saveProjectInfoModal() {
+  const updates = {
+    ProjectName: document.getElementById('piName').value,
+    ProjectCode: document.getElementById('piCode').value,
+    NumberOfFloors: document.getElementById('piFloors').value,
+    ContractorName: document.getElementById('piContractor').value,
+    ConsultantName: document.getElementById('piConsultant').value,
+    ClientName: document.getElementById('piClient').value,
+    AgreedStartDate: document.getElementById('piAgreedStart').value,
+    AgreedFinishDate: document.getElementById('piAgreedFinish').value,
+    CurrentRevisedFinishDate: document.getElementById('piRevisedFinish').value,
+    MobilizationDate: document.getElementById('piMobilization').value,
+    KeyFeatures: document.getElementById('piFeatures').value,
+    QualityPointsHighlighted: document.getElementById('piQuality').value,
+    PunchListSummary: document.getElementById('piPunch').value,
+  };
+  const res = await apiPost('saveProjectInfo', { user: STATE.user, info: updates });
+  if (res.success) {
+    Object.assign(STATE.projectInfo, updates);
+    closeModal();
+    showToast('Project brief updated', 'success');
+    renderDashboard(document.querySelector('.view'));
+  } else {
+    showToast('Save failed — your changes were not saved: ' + (res.error || 'unknown error'), 'error');
+  }
+}
+
+function openAddProjectRevisionModal() {
+  openModal(`
+    <h2>Add revised project date</h2>
+    <div class="field"><label>Revision label</label><input id="revLabel" placeholder="e.g. Revised Date 2"></div>
+    <div class="field"><label>Revised start</label><input type="date" id="revStart"></div>
+    <div class="field"><label>Revised finish</label><input type="date" id="revFinish"></div>
+    <div class="field"><label>Reason for revision</label><textarea id="revReason" rows="2"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveProjectRevision())">Save</button>
+    </div>
+  `);
+}
+async function saveProjectRevision() {
+  const baseline = {
+    BaselineID: uid('BL'),
+    BaselineName: document.getElementById('revLabel').value,
+    BaselineType: 'ProjectRevision',
+    ActivityID: '__PROJECT__',
+    BaselineStart: document.getElementById('revStart').value,
+    BaselineFinish: document.getElementById('revFinish').value,
+    Reason: document.getElementById('revReason').value,
+    IsActive: true,
+  };
+  STATE.baselines.push(baseline);
+  await apiPost('saveBaseline', { user: STATE.user, baseline });
+  closeModal();
+  showToast('Project revision added', 'success');
+  renderDashboard(document.querySelector('.view'));
+}
+
+function exportFullReport() {
+  const wb = XLSX.utils.book_new();
+  const actSheet = XLSX.utils.json_to_sheet(STATE.activities.map(a => ({
+    'Activity ID': a.ActivityID, 'WBS': a.WBS_Code, 'Description': a.ShortDescription,
+    'Planned Start': a.PlannedStart, 'Planned Finish': a.PlannedFinish,
+    'Actual Start': a.ActualStart, 'Actual Finish': a.ActualFinish,
+    '% Complete': a.PercentComplete, 'Status': getDelayStatus(a).label,
+  })));
+  XLSX.utils.book_append_sheet(wb, actSheet, 'Activities');
+  const boqSheet = XLSX.utils.json_to_sheet(STATE.boq.map(b => ({
+    'Serial No': b.SerialNo, 'Description': b.Description, 'Unit': b.Unit,
+    'Nos': b.Nos, 'Quantity': b.Quantity, 'Rate': b.Rate, 'Amount': b.Amount,
+  })));
+  XLSX.utils.book_append_sheet(wb, boqSheet, 'BOQ');
+  XLSX.writeFile(wb, (STATE.projectInfo.ProjectName || 'HS_Project_Planner') + '_Report.xlsx');
+  showToast('Report exported', 'success');
+}
+
+/* =====================================================================
+   BOQ VIEW
+   ===================================================================== */
+function renderBOQ(container) {
+  container.innerHTML = `
+    <div id="undoBanner" style="display:none;"></div>
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Bill of quantities</h2>
+      <div class="spacer"></div>
+      <input type="search" id="boqSearch" placeholder="Search BOQ items…" oninput="filterBOQTable()">
+      <button class="btn" onclick="document.getElementById('boqFileInput').click()">Upload Excel/CSV</button>
+      <input type="file" id="boqFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleBOQFileUpload(event)">
+      <button class="btn" onclick="openPasteBOQModal()">Paste from clipboard</button>
+      <button class="btn primary" onclick="openAddBOQItemModal()">+ Add item</button>
+      <button class="btn" onclick="exportBOQ()">Export</button>
+    </div>
+    <div class="toolbar" id="boqBulkActionsBar" style="display:none;">
+      <span id="boqBulkSelectedCount" style="color:var(--text-dim);font-size:12px;"></span>
+      <button class="btn sm danger" onclick="confirmBOQBulkDelete()">Delete selected</button>
+      <button class="btn sm" onclick="clearBOQSelection()">Clear selection</button>
+    </div>
+    <div id="boqGroupFilters" style="margin-bottom:10px;"></div>
+    <div class="tbl-wrap">
+      <table id="boqTable">
+        <thead><tr>
+          <th><input type="checkbox" id="selectAllBOQ" onchange="toggleSelectAllBOQ(this.checked)"></th>
+          <th>Serial</th><th>Group</th><th>Description</th><th>Unit</th><th>Nos</th>
+          <th>Quantity</th><th>Rate</th><th>Amount</th><th>Linked activities</th><th></th>
+        </tr></thead>
+        <tbody id="boqTableBody"></tbody>
+      </table>
+    </div>
+  `;
+  selectedBOQIds.clear();
+  renderBOQGroupFilters();
+  renderBOQTableBody();
+  renderUndoBanner();
+}
+
+let selectedBOQIds = new Set();
+function toggleBOQRowSelect(id, checked) {
+  if (checked) selectedBOQIds.add(id); else selectedBOQIds.delete(id);
+  updateBOQBulkActionsBar();
+}
+function toggleSelectAllBOQ(checked) {
+  document.querySelectorAll('.boqRowCheckbox').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedBOQIds.add(cb.dataset.id); else selectedBOQIds.delete(cb.dataset.id);
+  });
+  updateBOQBulkActionsBar();
+}
+function clearBOQSelection() {
+  selectedBOQIds.clear();
+  document.querySelectorAll('.boqRowCheckbox').forEach(cb => cb.checked = false);
+  updateBOQBulkActionsBar();
+}
+function updateBOQBulkActionsBar() {
+  const bar = document.getElementById('boqBulkActionsBar');
+  if (!bar) return;
+  if (selectedBOQIds.size > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('boqBulkSelectedCount').textContent = selectedBOQIds.size + ' selected';
+  } else bar.style.display = 'none';
+}
+function confirmBOQBulkDelete() {
+  const ids = [...selectedBOQIds];
+  confirmDialog(`Delete ${ids.length} selected BOQ items? This cannot be undone — export a backup first if unsure.`, async () => {
+    let count = 0;
+    for (const id of ids) {
+      const res = await apiPost('deleteBOQItem', { boqItemId: id });
+      if (res.success) count++;
+    }
+    showToast(count + ' BOQ items deleted', 'success');
+    clearBOQSelection();
+    await loadAll();
+  });
+}
+function openPasteBOQModal() {
+  openModal(`
+    <h2>Paste BOQ rows from clipboard</h2>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">
+      Copy a range from Excel or Google Sheets (including the header row) and paste below.
+    </p>
+    <div class="field"><textarea id="pasteBOQArea" rows="10" placeholder="Paste here (Ctrl+V / Cmd+V)…" style="font-family:monospace;font-size:12px;"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="parsePastedBOQ()">Continue</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('pasteBOQArea')?.focus(), 50);
+}
+function parsePastedBOQ() {
+  const raw = document.getElementById('pasteBOQArea').value;
+  if (!raw.trim()) { showToast('Nothing pasted', 'error'); return; }
+  const delimiter = raw.includes('\t') ? '\t' : ',';
+  const rows = raw.trim().split('\n').map(line => line.split(delimiter).map(c => c.trim()));
+  closeModal();
+  openColumnMappingModal(rows);
+}
+
+function renderBOQGroupFilters() {
+  const groups = [...new Set(STATE.boq.map(b => b.Group1).filter(Boolean))];
+  const el = document.getElementById('boqGroupFilters');
+  if (groups.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = groups.map(g => `<span class="chip" style="cursor:pointer" onclick="toggleBOQGroupFilter('${g.replace(/'/g,"\\'")}')">${g}</span>`).join('');
+}
+let boqGroupFilter = null;
+function toggleBOQGroupFilter(g) {
+  boqGroupFilter = (boqGroupFilter === g) ? null : g;
+  renderBOQTableBody();
+}
+
+function renderBOQTableBody() {
+  const search = (document.getElementById('boqSearch')?.value || '').toLowerCase();
+  let items = STATE.boq;
+  if (boqGroupFilter) items = items.filter(b => b.Group1 === boqGroupFilter);
+  if (search) items = items.filter(b => (b.Description||'').toLowerCase().includes(search) || (b.SerialNo||'').toString().toLowerCase().includes(search));
+
+  const body = document.getElementById('boqTableBody');
+  if (items.length === 0) {
+    body.innerHTML = `<tr><td colspan="11"><div class="empty-state">No BOQ items found. Upload an Excel file, paste from clipboard, or add items manually.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = items.map(b => {
+    const short = b.ShortDescription || autoShortDescription(b.Description);
+    const linkedIds = (b.LinkedActivityIDs || '').split(',').filter(Boolean);
+    const linkedNames = linkedIds.map(id => {
+      const a = getActivityById(id);
+      return a ? a.ShortDescription : id;
+    });
+    return `
+      <tr>
+        <td><input type="checkbox" class="boqRowCheckbox" data-id="${b.BOQItemID}" ${selectedBOQIds.has(b.BOQItemID)?'checked':''} onchange="toggleBOQRowSelect('${b.BOQItemID}', this.checked)"></td>
+        <td>${b.SerialNo || ''}</td>
+        <td>${b.Group1 || ''} ${b.Group2 ? '› '+b.Group2 : ''}</td>
+        <td>
+          <div class="short-desc-row" onclick="toggleLongDesc('${b.BOQItemID}')">${short} <span style="color:var(--accent);font-size:11px;">▾ details</span></div>
+          <div class="long-desc-popover" id="longdesc-${b.BOQItemID}">${b.Description}</div>
+        </td>
+        <td>${b.Unit || ''}</td>
+        <td>${b.Nos || ''}</td>
+        <td>${b.Quantity || ''}</td>
+        <td>${Number(b.Rate||0).toLocaleString()}</td>
+        <td>${Number(b.Amount||0).toLocaleString()}</td>
+        <td>${linkedNames.length ? linkedNames.map(n=>`<span class="chip">${n}</span>`).join('') : '<span style="color:var(--text-faint)">none</span>'}
+            <button class="btn sm" onclick="openLinkBOQModal('${b.BOQItemID}')">link</button>
+        </td>
+        <td>
+          <button class="btn sm" onclick="editBOQItem('${b.BOQItemID}')">edit</button>
+          <button class="btn sm danger" onclick="confirmDeleteBOQItem('${b.BOQItemID}')">delete</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+function confirmDeleteBOQItem(boqItemId) {
+  const item = getBOQById(boqItemId);
+  confirmDialog(`Delete BOQ item "<b>${item.ShortDescription || autoShortDescription(item.Description)}</b>"? This cannot be undone.`, async () => {
+    const res = await apiPost('deleteBOQItem', { boqItemId });
+    if (res.success) { showToast('BOQ item deleted', 'success'); await loadAll(); }
+    else showToast('Delete failed: ' + res.error, 'error');
+  });
+}
+function toggleLongDesc(id) {
+  document.getElementById('longdesc-' + id).classList.toggle('open');
+}
+function filterBOQTable() { renderBOQTableBody(); }
+
+/* ---- Flexible Excel/CSV import with column mapping ---- */
+function handleBOQFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rows.length < 2) { showToast('File has no data rows', 'error'); return; }
+    openColumnMappingModal(rows);
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+const BOQ_TARGET_FIELDS = [
+  { key: 'SerialNo', label: 'Serial number' },
+  { key: 'Description', label: 'Description (long)' },
+  { key: 'Unit', label: 'Unit' },
+  { key: 'Nos', label: 'Nos' },
+  { key: 'Quantity', label: 'Quantity' },
+  { key: 'Rate', label: 'Rate' },
+  { key: 'Amount', label: 'Amount' },
+  { key: 'Group1', label: 'Group / category (e.g. floor, trade)' },
+];
+
+function openColumnMappingModal(rows) {
+  const headerRow = rows[0];
+  window._pendingImportRows = rows;
+  openModal(`
+    <h2>Map your Excel columns</h2>
+    <p style="color:var(--text-dim);margin-bottom:14px;">
+      Match each BOQ field to a column from your file. Fields left as "—" will be skipped.
+    </p>
+    <div id="mappingFields">
+      ${BOQ_TARGET_FIELDS.map(f => `
+        <div class="field">
+          <label>${f.label}</label>
+          <select id="map_${f.key}">
+            <option value="-1">— not in file —</option>
+            ${headerRow.map((h, i) => `<option value="${i}" ${guessColumnMatch(h, f.key) ? 'selected' : ''}>${h || '(column '+(i+1)+')'}</option>`).join('')}
+          </select>
+        </div>
+      `).join('')}
+    </div>
+    <div class="field">
+      <label>Header row number in file</label>
+      <input type="number" id="mapHeaderRow" value="1" min="1" max="${rows.length}">
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => confirmBOQImport())">Import ${rows.length-1} rows</button>
+    </div>
+  `);
+}
+function guessColumnMatch(headerText, fieldKey) {
+  const h = String(headerText).toLowerCase();
+  const guesses = {
+    SerialNo: ['s.no','serial','sr','sr.no','item no','sl'],
+    Description: ['description','particulars','item description','work description'],
+    Unit: ['unit','uom'],
+    Nos: ['nos','no.','quantity nos','numbers'],
+    Quantity: ['quantity','qty'],
+    Rate: ['rate','unit rate','unit price'],
+    Amount: ['amount','total','total amount','value'],
+    Group1: ['group','category','trade','floor','section'],
+  };
+  return (guesses[fieldKey] || []).some(g => h.includes(g));
+}
+async function confirmBOQImport() {
+  const rows = window._pendingImportRows;
+  const headerRowIdx = parseInt(document.getElementById('mapHeaderRow').value) - 1;
+  const mapping = {};
+  BOQ_TARGET_FIELDS.forEach(f => {
+    const val = parseInt(document.getElementById('map_' + f.key).value);
+    if (val >= 0) mapping[f.key] = val;
+  });
+  const dataRows = rows.slice(headerRowIdx + 1);
+  const imported = dataRows
+    .filter(r => r.some(c => c !== ''))
+    .map(r => {
+      const obj = {};
+      Object.keys(mapping).forEach(field => { obj[field] = r[mapping[field]]; });
+      obj.ShortDescription = autoShortDescription(obj.Description);
+      if (!obj.Amount && obj.Quantity && obj.Rate) obj.Amount = Number(obj.Quantity) * Number(obj.Rate);
+      return obj;
+    });
+  closeModal();
+  showToast('Importing ' + imported.length + ' rows…', '');
+  const res = await apiPost('bulkImportBOQ', { user: STATE.user, rows: imported });
+  if (res.success) {
+    showToast('Imported ' + res.imported + ' BOQ items', 'success');
+    setLastUndo(`Imported ${res.imported} BOQ items just now.`, async () => {
+      const undoRes = await apiPost('undoBOQImportBatch', { user: STATE.user, batchId: res.batchId });
+      if (undoRes.success) showToast('BOQ import undone — removed ' + undoRes.removed + ' items', 'success');
+    });
+    await loadAll();
+  } else {
+    showToast('Import failed: ' + res.error, 'error');
+  }
+}
+
+function openAddBOQItemModal(existingId) {
+  const item = existingId ? getBOQById(existingId) : {};
+  openModal(`
+    <h2>${existingId ? 'Edit' : 'Add'} BOQ item</h2>
+    <div class="field"><label>Serial number</label><input id="boqSerial" value="${item.SerialNo||''}"></div>
+    <div class="field"><label>Description (full)</label><textarea id="boqDesc" rows="3">${item.Description||''}</textarea></div>
+    <div class="field"><label>Short description (leave blank to auto-generate)</label><input id="boqShortDesc" value="${item.ShortDescription||''}"></div>
+    <div class="grid grid-3">
+      <div class="field"><label>Unit</label><input id="boqUnit" value="${item.Unit||''}"></div>
+      <div class="field"><label>Nos</label><input type="number" id="boqNos" value="${item.Nos||''}"></div>
+      <div class="field"><label>Quantity</label><input type="number" id="boqQty" value="${item.Quantity||''}"></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label>Rate</label><input type="number" id="boqRate" value="${item.Rate||''}"></div>
+      <div class="field"><label>Amount (auto if blank)</label><input type="number" id="boqAmount" value="${item.Amount||''}"></div>
+    </div>
+    <div class="field"><label>Group / category</label><input id="boqGroup1" value="${item.Group1||''}"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveBOQItemModal('${existingId||''}'))">Save</button>
+    </div>
+  `);
+}
+function editBOQItem(id) { openAddBOQItemModal(id); }
+async function saveBOQItemModal(existingId) {
+  const desc = document.getElementById('boqDesc').value;
+  const item = {
+    BOQItemID: existingId || undefined,
+    SerialNo: document.getElementById('boqSerial').value,
+    Description: desc,
+    ShortDescription: document.getElementById('boqShortDesc').value || autoShortDescription(desc),
+    Unit: document.getElementById('boqUnit').value,
+    Nos: document.getElementById('boqNos').value,
+    Quantity: document.getElementById('boqQty').value,
+    Rate: document.getElementById('boqRate').value,
+    Amount: document.getElementById('boqAmount').value || (Number(document.getElementById('boqQty').value)*Number(document.getElementById('boqRate').value)),
+    Group1: document.getElementById('boqGroup1').value,
+  };
+  const res = await apiPost('saveBOQItem', { user: STATE.user, item });
+  closeModal();
+  if (res.success) { showToast('BOQ item saved', 'success'); await loadAll(); }
+  else showToast('Save failed: ' + res.error, 'error');
+}
+
+function openLinkBOQModal(boqItemId) {
+  const item = getBOQById(boqItemId);
+  const linkedIds = (item.LinkedActivityIDs || '').split(',').filter(Boolean);
+  openModal(`
+    <h2>Link BOQ item to activities</h2>
+    <p style="color:var(--text-dim);margin-bottom:10px;">${item.ShortDescription || autoShortDescription(item.Description)}</p>
+    <div class="field">
+      <label>Search activities</label>
+      <input type="text" id="linkBOQSearch" placeholder="Type to search…" oninput="renderLinkBOQOptions('${boqItemId}')">
+    </div>
+    <div id="linkBOQOptions" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:8px;"></div>
+    <div class="actions"><button class="btn primary" onclick="closeModal()">Done</button></div>
+  `);
+  renderLinkBOQOptions(boqItemId);
+}
+function renderLinkBOQOptions(boqItemId) {
+  const item = getBOQById(boqItemId);
+  const linkedIds = (item.LinkedActivityIDs || '').split(',').filter(Boolean);
+  const search = (document.getElementById('linkBOQSearch')?.value || '').toLowerCase();
+  const matches = STATE.activities.filter(a => a.ShortDescription && a.ShortDescription.toLowerCase().includes(search));
+  document.getElementById('linkBOQOptions').innerHTML = matches.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);">
+      <input type="checkbox" ${linkedIds.includes(a.ActivityID)?'checked':''} onchange="toggleBOQLink('${boqItemId}','${a.ActivityID}',this.checked)">
+      <span>${a.ShortDescription} <span style="color:var(--text-faint);font-size:11px;">(${a.ActivityID})</span></span>
+    </label>
+  `).join('') || `<div class="empty-state">No matching activities</div>`;
+}
+async function toggleBOQLink(boqItemId, activityId, checked) {
+  const res = await apiPost('linkBOQToActivity', { user: STATE.user, boqItemId, activityId, action: checked ? 'add' : 'remove' });
+  if (res.success) {
+    const item = getBOQById(boqItemId);
+    item.LinkedActivityIDs = res.linkedActivityIds.join(',');
+  }
+}
+
+function exportBOQ() {
+  const wb = XLSX.utils.book_new();
+  const sheet = XLSX.utils.json_to_sheet(STATE.boq.map(b => ({
+    'Serial No': b.SerialNo, 'Description': b.Description, 'Unit': b.Unit, 'Nos': b.Nos,
+    'Quantity': b.Quantity, 'Rate': b.Rate, 'Amount': b.Amount, 'Group': b.Group1,
+    'Linked Activities': b.LinkedActivityIDs,
+  })));
+  XLSX.utils.book_append_sheet(wb, sheet, 'BOQ');
+  XLSX.writeFile(wb, 'BOQ_Export.xlsx');
+}
+</script>
+<script>
+/* =====================================================================
+   ACTIVITY BULK IMPORT — file upload or paste from clipboard
+   Mirrors the BOQ import flow: flexible column mapping, then a single
+   "Undo this import" banner appears right on the Activities & Gantt
+   page so a bad upload never requires opening the Sheet.
+   ===================================================================== */
+const ACTIVITY_TARGET_FIELDS = [
+  { key: 'WBS_Code', label: 'WBS / activity code' },
+  { key: 'LongDescription', label: 'Description (long)' },
+  { key: 'Group1', label: 'Group 1 (e.g. trade, civil/electrical)' },
+  { key: 'Group2', label: 'Group 2 (e.g. floor)' },
+  { key: 'PlannedStart', label: 'Planned start date' },
+  { key: 'DurationDays', label: 'Duration (days)' },
+  { key: 'PlannedFinish', label: 'Planned finish date' },
+  { key: 'PercentComplete', label: '% Complete' },
+];
+function guessActivityColumnMatch(headerText, fieldKey) {
+  const h = String(headerText).toLowerCase();
+  const guesses = {
+    WBS_Code: ['wbs', 'code', 'activity id', 'task id'],
+    LongDescription: ['description', 'activity', 'task name', 'particulars'],
+    Group1: ['group', 'trade', 'category', 'discipline'],
+    Group2: ['floor', 'zone', 'sub-group', 'subgroup'],
+    PlannedStart: ['start', 'planned start', 'start date'],
+    DurationDays: ['duration', 'days', 'no. of days'],
+    PlannedFinish: ['finish', 'planned finish', 'end date', 'finish date'],
+    PercentComplete: ['% complete', 'percent', 'progress', '% done'],
+  };
+  return (guesses[fieldKey] || []).some(g => h.includes(g));
+}
+
+function handleActivityFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rows.length < 2) { showToast('File has no data rows', 'error'); return; }
+    openActivityColumnMappingModal(rows);
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+function openPasteActivitiesModal() {
+  openModal(`
+    <h2>Paste activities from clipboard</h2>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">
+      Copy a range of rows from Excel or Google Sheets (including the header row)
+      and paste it below. Tab-separated and comma-separated both work.
+    </p>
+    <div class="field"><textarea id="pasteActivitiesArea" rows="10" placeholder="Paste here (Ctrl+V / Cmd+V)…" style="font-family:monospace;font-size:12px;"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="parsePastedActivities()">Continue</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('pasteActivitiesArea')?.focus(), 50);
+}
+function parsePastedActivities() {
+  const raw = document.getElementById('pasteActivitiesArea').value;
+  if (!raw.trim()) { showToast('Nothing pasted', 'error'); return; }
+  const delimiter = raw.includes('\t') ? '\t' : ',';
+  const rows = raw.trim().split('\n').map(line => line.split(delimiter).map(c => c.trim()));
+  closeModal();
+  openActivityColumnMappingModal(rows);
+}
+
+function openActivityColumnMappingModal(rows) {
+  const headerRow = rows[0];
+  window._pendingActivityImportRows = rows;
+  openModal(`
+    <h2>Map your columns to activity fields</h2>
+    <p style="color:var(--text-dim);margin-bottom:14px;">
+      Match each activity field to a column from your data. Fields left as "—" will be skipped.
+      ${rows.length - 1} data row(s) detected.
+    </p>
+    <div id="activityMappingFields">
+      ${ACTIVITY_TARGET_FIELDS.map(f => `
+        <div class="field">
+          <label>${f.label}</label>
+          <select id="actmap_${f.key}">
+            <option value="-1">— not in file —</option>
+            ${headerRow.map((h, i) => `<option value="${i}" ${guessActivityColumnMatch(h, f.key) ? 'selected' : ''}>${h || '(column '+(i+1)+')'}</option>`).join('')}
+          </select>
+        </div>
+      `).join('')}
+    </div>
+    <div class="field">
+      <label>Header row number in data</label>
+      <input type="number" id="actMapHeaderRow" value="1" min="1" max="${rows.length}">
+    </div>
+    <div class="field" style="background:var(--panel2);border-radius:6px;padding:10px;">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="actMapPreview" checked onchange="toggleActivityImportPreview()"> Show preview before importing
+      </label>
+    </div>
+    <div id="activityImportPreviewWrap"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => confirmActivityImport())">Import ${rows.length-1} rows</button>
+    </div>
+  `);
+}
+function buildActivityImportMapping() {
+  const mapping = {};
+  ACTIVITY_TARGET_FIELDS.forEach(f => {
+    const el = document.getElementById('actmap_' + f.key);
+    const val = parseInt(el.value);
+    if (val >= 0) mapping[f.key] = val;
+  });
+  return mapping;
+}
+function toggleActivityImportPreview() {
+  const show = document.getElementById('actMapPreview').checked;
+  const wrap = document.getElementById('activityImportPreviewWrap');
+  if (!show) { wrap.innerHTML = ''; return; }
+  const rows = window._pendingActivityImportRows;
+  const headerRowIdx = parseInt(document.getElementById('actMapHeaderRow').value) - 1;
+  const mapping = buildActivityImportMapping();
+  const sample = rows.slice(headerRowIdx + 1, headerRowIdx + 6);
+  wrap.innerHTML = `<div class="tbl-wrap" style="max-height:180px;"><table>
+    <tr>${Object.keys(mapping).map(k => `<th>${k}</th>`).join('')}</tr>
+    ${sample.map(r => `<tr>${Object.keys(mapping).map(k => `<td>${r[mapping[k]]||''}</td>`).join('')}</tr>`).join('')}
+  </table></div><div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Showing first ${sample.length} of ${rows.length-1} rows</div>`;
+}
+async function confirmActivityImport() {
+  const rows = window._pendingActivityImportRows;
+  const headerRowIdx = parseInt(document.getElementById('actMapHeaderRow').value) - 1;
+  const mapping = buildActivityImportMapping();
+  if (!mapping.LongDescription) {
+    showToast('Please map at least the Description field before importing', 'error');
+    return;
+  }
+  const dataRows = rows.slice(headerRowIdx + 1);
+  const imported = dataRows
+    .filter(r => r.some(c => c !== ''))
+    .map(r => {
+      const obj = {};
+      Object.keys(mapping).forEach(field => { obj[field] = r[mapping[field]]; });
+      obj.ShortDescription = autoShortDescription(obj.LongDescription);
+      // normalize dates if they came in as Excel serials or text
+      ['PlannedStart', 'PlannedFinish'].forEach(df => {
+        if (obj[df] && !isNaN(obj[df]) && Number(obj[df]) > 20000) {
+          // Excel date serial (days since 1899-12-30)
+          const excelEpoch = new Date(1899, 11, 30);
+          obj[df] = new Date(excelEpoch.getTime() + Number(obj[df]) * 86400000).toISOString().slice(0, 10);
+        }
+      });
+      if (obj.PlannedStart && obj.DurationDays && !obj.PlannedFinish) {
+        const start = new Date(obj.PlannedStart);
+        const finish = new Date(start);
+        finish.setDate(finish.getDate() + (parseInt(obj.DurationDays) - 1));
+        obj.PlannedFinish = finish.toISOString().slice(0, 10);
+      }
+      return obj;
+    });
+  closeModal();
+  showToast('Importing ' + imported.length + ' activities…', '');
+  const res = await apiPost('bulkImportActivities', { user: STATE.user, rows: imported });
+  if (res.success) {
+    showToast('Imported ' + res.imported + ' activities', 'success');
+    setLastUndo(`Imported ${res.imported} activities just now.`, async () => {
+      const undoRes = await apiPost('undoImportBatch', { user: STATE.user, batchId: res.batchId });
+      if (undoRes.success) showToast('Import undone — removed ' + undoRes.removed + ' activities', 'success');
+    });
+    await loadAll();
+  } else {
+    showToast('Import failed: ' + res.error, 'error');
+  }
+}
+</script>
+<script>
+/* =====================================================================
+   ACTIVITIES + GANTT — COMBINED VIEW
+   One page so adding/importing an activity is immediately visible as a
+   bar in the Gantt below, and any accidental import/delete can be
+   undone right here without opening the Sheet.
+   ===================================================================== */
+let selectedActivityIds = new Set();
+let lastActionUndo = null; // { label, undoFn }
+
+function renderActivitiesAndGantt(container) {
+  container.innerHTML = `
+    <div id="undoBanner" style="display:none;"></div>
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Activities &amp; Gantt</h2>
+      <div class="spacer"></div>
+      <input type="search" id="actSearch" placeholder="Search activities…" oninput="renderActivitiesTableBody()">
+      <select id="actGroupFilter" onchange="renderActivitiesTableBody()">
+        <option value="">All groups</option>
+        ${[...new Set(STATE.activities.map(a=>a.Group1).filter(Boolean))].map(g=>`<option value="${g}">${g}</option>`).join('')}
+      </select>
+      <button class="btn" onclick="document.getElementById('actFileInput').click()">Upload Excel/CSV</button>
+      <input type="file" id="actFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleActivityFileUpload(event)">
+      <button class="btn" onclick="openPasteActivitiesModal()">Paste from clipboard</button>
+      <button class="btn primary" onclick="openActivityModal()">+ Add activity</button>
+    </div>
+    <div class="toolbar" id="bulkActionsBar" style="display:none;">
+      <span id="bulkSelectedCount" style="color:var(--text-dim);font-size:12px;"></span>
+      <button class="btn sm danger" onclick="confirmBulkDelete()">Delete selected</button>
+      <button class="btn sm" onclick="clearSelection()">Clear selection</button>
+    </div>
+    <div class="tbl-wrap" style="max-height:38vh;">
+      <table>
+        <thead><tr>
+          <th><input type="checkbox" id="selectAllActivities" onchange="toggleSelectAll(this.checked)"></th>
+          <th>ID</th><th>WBS</th><th>Description</th><th>Planned start</th><th>Days</th><th>Planned finish</th>
+          <th>Actual start</th><th>Actual finish</th><th>% Complete</th><th>Status</th><th>Color</th><th>Predecessors</th><th></th>
+        </tr></thead>
+        <tbody id="activitiesTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="gantt-toolbar" style="margin-top:18px;">
+      <h2 style="font-size:16px;">Gantt chart</h2>
+      <div class="zoom-controls">
+        <button class="btn sm" onclick="setGanttZoom('day')" title="Zoom in: day view">Day</button>
+        <button class="btn sm" onclick="setGanttZoom('week')" title="Week view">Week</button>
+        <button class="btn sm" onclick="setGanttZoom('month')" title="Zoom out: month view">Month</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+        <input type="checkbox" id="showBaselineToggle" checked onchange="renderGanttBody()"> Show baseline
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+        <input type="checkbox" id="showRollupToggle" onchange="renderGanttBody()"> Rollup view
+      </label>
+      <select id="ganttColorFilterSelect" onchange="STATE.ganttColorFilter=this.value||null; renderGanttBody()">
+        <option value="">All colors</option>
+        ${STATE.colors.map(c=>`<option value="${c.ColorTagID}">${c.ColorName}</option>`).join('')}
+      </select>
+      <div class="spacer"></div>
+      <button class="btn" onclick="openBaselineFreezeModal()">Freeze baseline</button>
+      <button class="btn" onclick="window.print()">Print Gantt</button>
+    </div>
+    <div id="ganttWrap">
+      <div id="ganttGrid"></div>
+      <div id="ganttScroll"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text-dim);flex-wrap:wrap;">
+      <span><span class="color-swatch" style="background:#3B82F6"></span> Planned</span>
+      <span><span class="color-swatch" style="background:#9C6F00"></span> Baseline</span>
+      <span><span class="gantt-milestone" style="position:relative;display:inline-block;width:14px;height:10px;transform:none;border-bottom-width:10px;"></span> Milestone</span>
+      <span><span style="display:inline-block;width:14px;height:10px;background:repeating-linear-gradient(45deg,rgba(255,183,77,0.3),rgba(255,183,77,0.3) 4px,transparent 4px,transparent 8px);border:1px dashed #FFB74D;"></span> Non-progress event</span>
+      <span style="color:var(--red);">| Today</span>
+    </div>
+  `;
+  selectedActivityIds.clear();
+  renderActivitiesTableBody();
+  renderGanttBody();
+  renderUndoBanner();
+}
+
+function renderUndoBanner() {
+  const el = document.getElementById('undoBanner');
+  if (!el) return;
+  if (!lastActionUndo) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.style.cssText = 'display:flex;align-items:center;gap:12px;background:rgba(230,81,0,0.15);border:1px solid var(--orange);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;';
+  el.innerHTML = `
+    <span style="flex:1;">${lastActionUndo.label}</span>
+    <button class="btn sm primary" id="undoActionBtn">Undo</button>
+    <button class="btn sm" onclick="dismissUndo()">Dismiss</button>
+  `;
+  document.getElementById('undoActionBtn').onclick = async () => {
+    el.innerHTML = `<span>Undoing…</span>`;
+    await lastActionUndo.undoFn();
+    lastActionUndo = null;
+    await loadAll();
+  };
+}
+function dismissUndo() { lastActionUndo = null; renderUndoBanner(); }
+function setLastUndo(label, undoFn) {
+  lastActionUndo = { label, undoFn };
+  renderUndoBanner();
+}
+
+function renderActivitiesTableBody() {
+  const search = (document.getElementById('actSearch')?.value || '').toLowerCase();
+  const groupFilter = document.getElementById('actGroupFilter')?.value || '';
+  let acts = STATE.activities;
+  if (search) acts = acts.filter(a => (a.ShortDescription||'').toLowerCase().includes(search) || (a.ActivityID||'').toLowerCase().includes(search));
+  if (groupFilter) acts = acts.filter(a => a.Group1 === groupFilter);
+
+  const body = document.getElementById('activitiesTableBody');
+  if (!body) return;
+  if (acts.length === 0) {
+    body.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="icon">⚒</div>No activities yet. Add one, paste from clipboard, or upload an Excel file to get started.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = acts.map(a => {
+    const status = getDelayStatus(a);
+    const preds = STATE.links.filter(l => l.SuccessorID === a.ActivityID).map(l => {
+      const p = getActivityById(l.PredecessorID);
+      return `${p ? p.ShortDescription : l.PredecessorID} (${l.LinkType})`;
+    });
+    const colorObj = STATE.colors.find(c => c.ColorTagID === a.ColorTag);
+    const dur = (a.PlannedStart && a.PlannedFinish) ? daysBetween(a.PlannedStart, a.PlannedFinish) : (a.DurationDays || '');
+    return `
+      <tr>
+        <td><input type="checkbox" class="actRowCheckbox" data-id="${a.ActivityID}" ${selectedActivityIds.has(a.ActivityID)?'checked':''} onchange="toggleRowSelect('${a.ActivityID}', this.checked)"></td>
+        <td><span class="id-badge" style="background:var(--panel2);padding:1px 6px;border-radius:3px;font-size:11px;color:var(--text-faint)">${a.ActivityID.slice(-6)}</span></td>
+        <td>${a.WBS_Code||''}</td>
+        <td>
+          <div class="short-desc-row" onclick="toggleLongDesc('act-${a.ActivityID}')">${a.ShortDescription} <span style="color:var(--accent);font-size:11px;">▾</span></div>
+          <div class="long-desc-popover" id="longdesc-act-${a.ActivityID}">${a.LongDescription||a.ShortDescription}</div>
+        </td>
+        <td>${fmtDate(a.PlannedStart)}</td>
+        <td>${dur !== '' ? dur + 'd' : ''}</td>
+        <td>${fmtDate(a.PlannedFinish)}</td>
+        <td>${fmtDate(a.ActualStart)}</td>
+        <td>${fmtDate(a.ActualFinish)}</td>
+        <td>
+          <input type="number" min="0" max="100" value="${a.PercentComplete||0}" style="width:60px"
+            onchange="quickUpdateProgress('${a.ActivityID}', this.value)"> %
+        </td>
+        <td><span class="badge ${status.cls}">${status.label}</span></td>
+        <td>${colorObj ? `<span class="color-swatch" style="background:${colorObj.HexCode}"></span>${colorObj.ColorName}` : '—'}</td>
+        <td>${preds.length ? preds.map(p=>`<span class="chip">${p}</span>`).join('') : '<span style="color:var(--text-faint)">none</span>'}
+          <button class="btn sm" onclick="openLinkActivityModal('${a.ActivityID}')">link</button>
+        </td>
+        <td>
+          <button class="btn sm" onclick="openActivityModal('${a.ActivityID}')">edit</button>
+          <button class="btn sm danger" onclick="confirmDeleteActivity('${a.ActivityID}')">delete</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function quickUpdateProgress(activityId, value) {
+  const res = await apiPost('bulkUpdateProgress', { user: STATE.user, updates: [{ ActivityID: activityId, PercentComplete: Number(value) }] });
+  if (res.success) {
+    const a = getActivityById(activityId);
+    if (a) a.PercentComplete = Number(value);
+    showToast('Progress updated', 'success');
+    renderActivitiesTableBody();
+    renderGanttBody();
+  }
+}
+
+function confirmDeleteActivity(activityId) {
+  const a = getActivityById(activityId);
+  confirmDialog(`Delete "<b>${a.ShortDescription}</b>"? It will move to the Recycle bin and can be restored from there if this was a mistake.`, async () => {
+    const res = await apiPost('softDeleteActivity', { user: STATE.user, activityId });
+    if (res.success) {
+      STATE.activities = STATE.activities.filter(x => x.ActivityID !== activityId);
+      showToast('Activity moved to recycle bin', 'success');
+      setLastUndo(`Deleted "${a.ShortDescription}".`, async () => {
+        await apiPost('restoreActivity', { user: STATE.user, activityId });
+        showToast('Activity restored', 'success');
+      });
+      renderCurrentView();
+    } else {
+      showToast('Delete failed: ' + res.error, 'error');
+    }
+  });
+}
+
+/* ---- Bulk selection ---- */
+function toggleRowSelect(activityId, checked) {
+  if (checked) selectedActivityIds.add(activityId);
+  else selectedActivityIds.delete(activityId);
+  updateBulkActionsBar();
+}
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.actRowCheckbox').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedActivityIds.add(cb.dataset.id);
+    else selectedActivityIds.delete(cb.dataset.id);
+  });
+  updateBulkActionsBar();
+}
+function clearSelection() {
+  selectedActivityIds.clear();
+  document.querySelectorAll('.actRowCheckbox').forEach(cb => cb.checked = false);
+  const selAll = document.getElementById('selectAllActivities');
+  if (selAll) selAll.checked = false;
+  updateBulkActionsBar();
+}
+function updateBulkActionsBar() {
+  const bar = document.getElementById('bulkActionsBar');
+  const countEl = document.getElementById('bulkSelectedCount');
+  if (!bar) return;
+  if (selectedActivityIds.size > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = selectedActivityIds.size + ' selected';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function confirmBulkDelete() {
+  const ids = [...selectedActivityIds];
+  confirmDialog(`Delete ${ids.length} selected activities? They will move to the Recycle bin and can be restored from there.`, async () => {
+    const res = await apiPost('bulkSoftDeleteActivities', { user: STATE.user, activityIds: ids });
+    if (res.success) {
+      STATE.activities = STATE.activities.filter(a => !ids.includes(a.ActivityID));
+      showToast(res.deleted + ' activities moved to recycle bin', 'success');
+      setLastUndo(`Deleted ${res.deleted} activities.`, async () => {
+        for (const id of ids) await apiPost('restoreActivity', { user: STATE.user, activityId: id });
+        showToast('Activities restored', 'success');
+      });
+      clearSelection();
+      renderCurrentView();
+    }
+  });
+}
+
+function openActivityModal(existingId) {
+  const a = existingId ? getActivityById(existingId) : {};
+  const linkedBOQ = existingId ? STATE.boq.filter(b => (b.LinkedActivityIDs||'').split(',').includes(existingId)) : [];
+  openModal(`
+    <h2>${existingId ? 'Edit' : 'Add'} activity</h2>
+    <div class="field"><label>WBS code</label><input id="actWBS" value="${a.WBS_Code||''}"></div>
+    <div class="field"><label>Long description</label><textarea id="actLongDesc" rows="3" oninput="document.getElementById('actShortDescPreview').textContent = document.getElementById('actShortDesc').value || autoShortDescription(this.value)">${a.LongDescription||''}</textarea></div>
+    <div class="field">
+      <label>Short description (leave blank to auto-generate from long description)</label>
+      <input id="actShortDesc" value="${a.ShortDescription||''}" oninput="document.getElementById('actShortDescPreview').textContent = this.value || autoShortDescription(document.getElementById('actLongDesc').value)">
+      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Preview: <span id="actShortDescPreview">${a.ShortDescription || ''}</span></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="field"><label>Group 1 (e.g. Civil works)</label><input id="actGroup1" value="${a.Group1||''}"></div>
+      <div class="field"><label>Group 2 (e.g. Ground floor)</label><input id="actGroup2" value="${a.Group2||''}"></div>
+      <div class="field"><label>Group 3 (custom)</label><input id="actGroup3" value="${a.Group3||''}"></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="field"><label>Planned start</label><input type="date" id="actPlanStart" value="${(a.PlannedStart||'').slice(0,10)}" onchange="recalcFinishFromDuration()"></div>
+      <div class="field"><label>Duration (days)</label><input type="number" min="1" id="actDuration" value="${a.DurationDays || (a.PlannedStart && a.PlannedFinish ? daysBetween(a.PlannedStart,a.PlannedFinish) : '')}" onchange="recalcFinishFromDuration()" placeholder="e.g. 10"></div>
+      <div class="field"><label>Planned finish</label><input type="date" id="actPlanFinish" value="${(a.PlannedFinish||'').slice(0,10)}" onchange="recalcDurationFromFinish()"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);margin:-8px 0 12px 2px;">
+      Enter a start date and duration to auto-calculate the finish date, or enter start and finish directly to auto-calculate duration.
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label>Actual start</label><input type="date" id="actActualStart" value="${(a.ActualStart||'').slice(0,10)}"></div>
+      <div class="field">
+        <label>Actual finish</label>
+        <input type="date" id="actActualFinish" value="${(a.ActualFinish||'').slice(0,10)}" onchange="handleFinishDateEntered(this.value)">
+      </div>
+    </div>
+    <div id="quantityModeWrap" class="field" style="${a.ActualFinish ? '' : 'display:none'}">
+      <label>Quantity recording mode</label>
+      <select id="actQtyMode">
+        <option value="BOQ" ${a.QuantityMode==='BOQ'?'selected':''}>As per BOQ (no variance allowed)</option>
+        <option value="ACTUAL" ${a.QuantityMode==='ACTUAL'?'selected':''}>As per actual (allows +/- variance in final cost)</option>
+      </select>
+      <div class="field" style="margin-top:8px;" id="actualQtyFieldWrap">
+        <label>Actual quantity executed</label>
+        <input type="number" id="actActualQty" value="${a.ActualQuantity||''}">
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label>% Complete</label><input type="number" min="0" max="100" id="actPctComplete" value="${a.PercentComplete||0}"></div>
+      <div class="field"><label>Color tag</label>
+        <select id="actColorTag">
+          <option value="">— none —</option>
+          ${STATE.colors.map(c=>`<option value="${c.ColorTagID}" ${a.ColorTag===c.ColorTagID?'selected':''}>${c.ColorName}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="actNotes" rows="2">${a.Notes||''}</textarea></div>
+    ${existingId ? `<div class="field"><label>Linked BOQ items</label>
+      <div>${linkedBOQ.length ? linkedBOQ.map(b=>`<span class="chip">${b.ShortDescription||autoShortDescription(b.Description)}</span>`).join('') : '<span style="color:var(--text-faint)">none</span>'}</div>
+    </div>` : ''}
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveActivityModal('${existingId||''}'))">Save</button>
+    </div>
+  `);
+}
+function handleFinishDateEntered(val) {
+  document.getElementById('quantityModeWrap').style.display = val ? '' : 'none';
+}
+function recalcFinishFromDuration() {
+  const startEl = document.getElementById('actPlanStart');
+  const durEl = document.getElementById('actDuration');
+  const finishEl = document.getElementById('actPlanFinish');
+  if (!startEl.value || !durEl.value) return;
+  const start = new Date(startEl.value);
+  const finish = new Date(start);
+  finish.setDate(finish.getDate() + (parseInt(durEl.value) - 1)); // duration includes the start day
+  finishEl.value = finish.toISOString().slice(0, 10);
+}
+function recalcDurationFromFinish() {
+  const startEl = document.getElementById('actPlanStart');
+  const finishEl = document.getElementById('actPlanFinish');
+  const durEl = document.getElementById('actDuration');
+  if (!startEl.value || !finishEl.value) return;
+  const days = daysBetween(startEl.value, finishEl.value) + 1;
+  if (days > 0) durEl.value = days;
+}
+async function saveActivityModal(existingId) {
+  const longDesc = document.getElementById('actLongDesc').value;
+  const activity = {
+    ActivityID: existingId || undefined,
+    WBS_Code: document.getElementById('actWBS').value,
+    LongDescription: longDesc,
+    ShortDescription: document.getElementById('actShortDesc').value || autoShortDescription(longDesc),
+    Group1: document.getElementById('actGroup1').value,
+    Group2: document.getElementById('actGroup2').value,
+    Group3: document.getElementById('actGroup3').value,
+    Type: 'task',
+    PlannedStart: document.getElementById('actPlanStart').value,
+    PlannedFinish: document.getElementById('actPlanFinish').value,
+    DurationDays: document.getElementById('actDuration').value,
+    ActualStart: document.getElementById('actActualStart').value,
+    ActualFinish: document.getElementById('actActualFinish').value,
+    QuantityMode: document.getElementById('actQtyMode') ? document.getElementById('actQtyMode').value : '',
+    ActualQuantity: document.getElementById('actActualQty') ? document.getElementById('actActualQty').value : '',
+    PercentComplete: document.getElementById('actPctComplete').value,
+    ColorTag: document.getElementById('actColorTag').value,
+    Notes: document.getElementById('actNotes').value,
+    WeightFactor: 1,
+  };
+  const res = await apiPost('saveActivity', { user: STATE.user, activity });
+  closeModal();
+  if (res.success) { showToast('Activity saved', 'success'); await loadAll(); }
+  else showToast('Save failed: ' + res.error, 'error');
+}
+
+/* ---- Linking activities (predecessor/successor) from Activities tab ---- */
+function openLinkActivityModal(activityId) {
+  const a = getActivityById(activityId);
+  openModal(`
+    <h2>Link predecessors for "${a.ShortDescription}"</h2>
+    <div class="field">
+      <label>Search activities to add as predecessor</label>
+      <input type="text" id="linkActSearch" placeholder="Type to search…" oninput="renderLinkActivityOptions('${activityId}')">
+    </div>
+    <div id="linkActOptions" style="max-height:300px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:10px;"></div>
+    <h3 style="font-size:13px;margin-bottom:8px;">Existing links</h3>
+    <div id="existingLinksList"></div>
+    <div class="actions"><button class="btn primary" onclick="closeModal()">Done</button></div>
+  `);
+  renderLinkActivityOptions(activityId);
+  renderExistingLinksList(activityId);
+}
+function renderLinkActivityOptions(activityId) {
+  const search = (document.getElementById('linkActSearch')?.value || '').toLowerCase();
+  const matches = STATE.activities.filter(a => a.ActivityID !== activityId && a.ShortDescription && a.ShortDescription.toLowerCase().includes(search)).slice(0, 30);
+  document.getElementById('linkActOptions').innerHTML = matches.map(a => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);">
+      <span style="flex:1;">${a.ShortDescription}</span>
+      <select id="linkType_${a.ActivityID}" style="width:90px;">
+        <option value="FS">FS</option><option value="SS">SS</option><option value="FF">FF</option><option value="SF">SF</option>
+      </select>
+      <input type="number" id="linkLag_${a.ActivityID}" value="0" style="width:60px" title="lag days">
+      <button class="btn sm primary" onclick="addPredecessorLink('${a.ActivityID}','${activityId}')">add</button>
+    </div>
+  `).join('') || `<div class="empty-state">No matches</div>`;
+}
+async function addPredecessorLink(predId, succId) {
+  const linkType = document.getElementById('linkType_' + predId).value;
+  const lag = document.getElementById('linkLag_' + predId).value;
+  const link = { LinkID: uid('LNK'), PredecessorID: predId, SuccessorID: succId, LinkType: linkType, LagDays: lag };
+  const res = await apiPost('saveLink', { user: STATE.user, link });
+  if (res.success) {
+    STATE.links.push(link);
+    showToast('Link added', 'success');
+    renderExistingLinksList(succId);
+  }
+}
+function renderExistingLinksList(activityId) {
+  const links = STATE.links.filter(l => l.SuccessorID === activityId);
+  document.getElementById('existingLinksList').innerHTML = links.map(l => {
+    const p = getActivityById(l.PredecessorID);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--border);">
+      <span>${p ? p.ShortDescription : l.PredecessorID} <span style="color:var(--text-faint);font-size:11px;">(${l.LinkType}, lag ${l.LagDays||0}d)</span></span>
+      <button class="btn sm danger" onclick="removeLink('${l.LinkID}','${activityId}')">remove</button>
+    </div>`;
+  }).join('') || `<div style="color:var(--text-faint);font-size:12px;">No predecessors linked.</div>`;
+}
+async function removeLink(linkId, activityId) {
+  const res = await apiPost('deleteLink', { linkId });
+  if (res.success) {
+    STATE.links = STATE.links.filter(l => l.LinkID !== linkId);
+    renderExistingLinksList(activityId);
+    showToast('Link removed', 'success');
+  }
+}
+</script>
+<script>
+/* =====================================================================
+   GANTT CHART — rendering engine (called from the combined
+   Activities & Gantt view; see renderActivitiesAndGantt above)
+   ===================================================================== */
+let ganttDragState = null;
+let ganttLinkState = null;
+
+function setGanttZoom(zoom) {
+  STATE.ganttZoom = zoom;
+  renderGanttBody();
+}
+
+function getGanttDateRange() {
+  const allDates = [];
+  STATE.activities.forEach(a => {
+    if (a.PlannedStart) allDates.push(new Date(a.PlannedStart));
+    if (a.PlannedFinish) allDates.push(new Date(a.PlannedFinish));
+  });
+  STATE.events.forEach(e => {
+    if (e.StartDate) allDates.push(new Date(e.StartDate));
+    if (e.EndDate) allDates.push(new Date(e.EndDate));
+  });
+  if (allDates.length === 0) {
+    const now = new Date();
+    return { start: now, end: new Date(now.getTime() + 90 * 86400000) };
+  }
+  const min = new Date(Math.min(...allDates));
+  const max = new Date(Math.max(...allDates));
+  min.setDate(min.getDate() - 5);
+  max.setDate(max.getDate() + 10);
+  return { start: min, end: max };
+}
+
+function renderGanttBody() {
+  const dayW = CONFIG.DAY_WIDTH[STATE.ganttZoom];
+  const { start, end } = getGanttDateRange();
+  const totalDays = Math.max(1, Math.round((end - start) / 86400000));
+
+  let acts = STATE.activities.filter(a => a.Type !== 'event'); // events render as bands, not rows, but milestones do get rows
+  if (STATE.ganttColorFilter) acts = acts.filter(a => a.ColorTag === STATE.ganttColorFilter);
+  const rollup = document.getElementById('showRollupToggle')?.checked;
+  if (rollup) acts = acts.filter(a => a.IsRollup === true || a.IsRollup === 'TRUE' || !a.RollupParentID);
+
+  // --- Left grid: labels ---
+  const gridEl = document.getElementById('ganttGrid');
+  gridEl.innerHTML = `<div class="gantt-header-row">Activity</div>` +
+    acts.map(a => `
+      <div class="gantt-row-label" title="${a.ShortDescription}">
+        <span class="id-badge">${a.ActivityID.slice(-6)}</span>
+        ${a.ShortDescription || '(untitled)'}
+      </div>`).join('');
+
+  // --- Right scroll: day headers + bars ---
+  const scrollEl = document.getElementById('ganttScroll');
+  let dayHeaderHTML = '<div class="gantt-day-header" id="ganttDayHeader">';
+  let cursor = new Date(start);
+  for (let i = 0; i < totalDays; i++) {
+    const label = STATE.ganttZoom === 'month'
+      ? (cursor.getDate() === 1 ? cursor.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) : '')
+      : STATE.ganttZoom === 'week'
+        ? (cursor.getDay() === 1 ? cursor.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '')
+        : cursor.getDate();
+    dayHeaderHTML += `<div class="gantt-day-cell" style="width:${dayW}px;">${label}</div>`;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  dayHeaderHTML += '</div>';
+
+  let bodyHTML = `<div id="ganttBarsArea" style="position:relative;width:${totalDays*dayW}px;">`;
+
+  // event bands (non-progress events drawn as background bands across all rows)
+  STATE.events.forEach(ev => {
+    if (!ev.StartDate) return;
+    const left = Math.round((new Date(ev.StartDate) - start) / 86400000) * dayW;
+    const width = ev.EndDate ? Math.max(dayW, Math.round((new Date(ev.EndDate) - new Date(ev.StartDate)) / 86400000) * dayW) : dayW;
+    bodyHTML += `<div class="gantt-event-band" style="left:${left}px;width:${width}px;height:${acts.length*32}px;" title="${ev.EventName} (${ev.EventType})"></div>`;
+  });
+
+  // today line
+  const todayLeft = Math.round((new Date() - start) / 86400000) * dayW;
+  bodyHTML += `<div class="gantt-today-line" style="left:${todayLeft}px;height:${acts.length*32}px;"></div>`;
+
+  acts.forEach((a, idx) => {
+    const top = idx * 32;
+    if (a.Type === 'milestone') {
+      if (!a.PlannedStart) return;
+      const left = Math.round((new Date(a.PlannedStart) - start) / 86400000) * dayW;
+      bodyHTML += `<div class="gantt-milestone" style="left:${left}px;top:${top+4}px;" title="${a.ShortDescription}" onclick="openActivityModal('${a.ActivityID}')"></div>`;
+      return;
+    }
+    if (!a.PlannedStart || !a.PlannedFinish) return;
+    const left = Math.round((new Date(a.PlannedStart) - start) / 86400000) * dayW;
+    const width = Math.max(dayW, Math.round((new Date(a.PlannedFinish) - new Date(a.PlannedStart)) / 86400000) * dayW);
+    const pct = Number(a.PercentComplete) || 0;
+    const colorObj = STATE.colors.find(c => c.ColorTagID === a.ColorTag);
+    const barColor = colorObj ? colorObj.HexCode : '#3B82F6';
+
+    // baseline bar (if exists and toggle on)
+    if (document.getElementById('showBaselineToggle')?.checked) {
+      const bl = STATE.baselines.find(b => b.ActivityID === a.ActivityID && (b.IsActive === true || b.IsActive === 'TRUE'));
+      if (bl && bl.BaselineStart && bl.BaselineFinish) {
+        const blLeft = Math.round((new Date(bl.BaselineStart) - start) / 86400000) * dayW;
+        const blWidth = Math.max(dayW, Math.round((new Date(bl.BaselineFinish) - new Date(bl.BaselineStart)) / 86400000) * dayW);
+        bodyHTML += `<div class="gantt-baseline-bar" style="left:${blLeft}px;top:${top+24}px;width:${blWidth}px;" title="Baseline: ${fmtDate(bl.BaselineStart)} - ${fmtDate(bl.BaselineFinish)}"></div>`;
+      }
+    }
+
+    bodyHTML += `
+      <div class="gantt-bar" data-activity-id="${a.ActivityID}" style="left:${left}px;top:${top+5}px;width:${width}px;background:${barColor};"
+        title="${a.ShortDescription} | ${fmtDate(a.PlannedStart)} - ${fmtDate(a.PlannedFinish)} | ${pct}%">
+        <div class="progress-fill" style="width:${pct}%;"></div>
+        <span class="bar-label">${a.ShortDescription || ''}</span>
+        <div class="resize-handle left" data-side="left"></div>
+        <div class="resize-handle right" data-side="right"></div>
+        <div class="link-handle left" title="Drag to link as successor"></div>
+        <div class="link-handle right" title="Drag to link as predecessor"></div>
+      </div>`;
+  });
+
+  // dependency link lines (simple elbow connectors)
+  STATE.links.forEach(l => {
+    const predIdx = acts.findIndex(a => a.ActivityID === l.PredecessorID);
+    const succIdx = acts.findIndex(a => a.ActivityID === l.SuccessorID);
+    if (predIdx === -1 || succIdx === -1) return;
+    const pred = acts[predIdx], succ = acts[succIdx];
+    if (!pred.PlannedFinish || !succ.PlannedStart) return;
+    const x1 = Math.round((new Date(pred.PlannedFinish) - start) / 86400000) * dayW;
+    const y1 = predIdx * 32 + 16;
+    const x2 = Math.round((new Date(succ.PlannedStart) - start) / 86400000) * dayW;
+    const y2 = succIdx * 32 + 16;
+    bodyHTML += `<svg class="gantt-link-line" style="left:0;top:0;width:${totalDays*dayW}px;height:${acts.length*32}px;">
+      <path d="M${x1},${y1} L${x1+10},${y1} L${x1+10},${y2} L${x2},${y2}" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ganttArrow)"/>
+    </svg>`;
+  });
+
+  bodyHTML += `<svg width="0" height="0"><defs><marker id="ganttArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#666"/></marker></defs></svg>`;
+  bodyHTML += '</div>';
+
+  scrollEl.innerHTML = dayHeaderHTML + bodyHTML;
+
+  attachGanttDragHandlers();
+  attachGanttLinkHandlers();
+
+  // sync vertical scroll between grid and bars
+  scrollEl.onscroll = () => { document.getElementById('ganttGrid').scrollTop = scrollEl.scrollTop; };
+}
+
+/* ---- Drag to move / resize bars ---- */
+function attachGanttDragHandlers() {
+  const bars = document.querySelectorAll('.gantt-bar');
+  bars.forEach(bar => {
+    bar.addEventListener('mousedown', (e) => {
+      if (e.target.classList.contains('resize-handle') || e.target.classList.contains('link-handle')) return;
+      const activityId = bar.dataset.activityId;
+      ganttDragState = { activityId, startX: e.clientX, originalLeft: parseInt(bar.style.left), mode: 'move' };
+      bar.classList.add('dragging');
+      e.preventDefault();
+    });
+    bar.querySelectorAll('.resize-handle').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        const activityId = bar.dataset.activityId;
+        ganttDragState = {
+          activityId, startX: e.clientX,
+          originalLeft: parseInt(bar.style.left), originalWidth: parseInt(bar.style.width),
+          mode: 'resize-' + handle.dataset.side,
+        };
+        e.stopPropagation();
+        e.preventDefault();
+      });
+    });
+  });
+}
+document.addEventListener('mousemove', (e) => {
+  if (!ganttDragState) return;
+  const dayW = CONFIG.DAY_WIDTH[STATE.ganttZoom];
+  const deltaPx = e.clientX - ganttDragState.startX;
+  const deltaDays = Math.round(deltaPx / dayW);
+  const bar = document.querySelector(`.gantt-bar[data-activity-id="${ganttDragState.activityId}"]`);
+  if (!bar) return;
+  if (ganttDragState.mode === 'move') {
+    bar.style.left = (ganttDragState.originalLeft + deltaDays * dayW) + 'px';
+  } else if (ganttDragState.mode === 'resize-left') {
+    bar.style.left = (ganttDragState.originalLeft + deltaDays * dayW) + 'px';
+    bar.style.width = Math.max(dayW, ganttDragState.originalWidth - deltaDays * dayW) + 'px';
+  } else if (ganttDragState.mode === 'resize-right') {
+    bar.style.width = Math.max(dayW, ganttDragState.originalWidth + deltaDays * dayW) + 'px';
+  }
+  ganttDragState.deltaDays = deltaDays;
+});
+document.addEventListener('mouseup', async () => {
+  if (!ganttDragState) return;
+  const bar = document.querySelector(`.gantt-bar[data-activity-id="${ganttDragState.activityId}"]`);
+  bar?.classList.remove('dragging');
+  const deltaDays = ganttDragState.deltaDays || 0;
+  if (deltaDays !== 0) {
+    const a = getActivityById(ganttDragState.activityId);
+    const { start } = getGanttDateRange();
+    let newStart = new Date(a.PlannedStart), newFinish = new Date(a.PlannedFinish);
+    if (ganttDragState.mode === 'move') {
+      newStart.setDate(newStart.getDate() + deltaDays);
+      newFinish.setDate(newFinish.getDate() + deltaDays);
+    } else if (ganttDragState.mode === 'resize-left') {
+      newStart.setDate(newStart.getDate() + deltaDays);
+    } else if (ganttDragState.mode === 'resize-right') {
+      newFinish.setDate(newFinish.getDate() + deltaDays);
+    }
+    a.PlannedStart = newStart.toISOString().slice(0, 10);
+    a.PlannedFinish = newFinish.toISOString().slice(0, 10);
+    await apiPost('saveActivity', { user: STATE.user, activity: a });
+    showToast('Dates updated (links preserved)', 'success');
+    renderGanttBody();
+    renderActivitiesTableBody();
+  }
+  ganttDragState = null;
+});
+
+/* ---- Drag to link two bars ---- */
+function attachGanttLinkHandlers() {
+  document.querySelectorAll('.link-handle').forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      const bar = handle.closest('.gantt-bar');
+      ganttLinkState = { fromId: bar.dataset.activityId, fromSide: handle.classList.contains('right') ? 'right' : 'left' };
+    });
+  });
+  document.querySelectorAll('.gantt-bar').forEach(bar => {
+    bar.addEventListener('mouseup', async (e) => {
+      if (!ganttLinkState) return;
+      const toId = bar.dataset.activityId;
+      if (toId !== ganttLinkState.fromId) {
+        const linkType = ganttLinkState.fromSide === 'right' ? 'FS' : 'SF';
+        const link = { LinkID: uid('LNK'), PredecessorID: ganttLinkState.fromId, SuccessorID: toId, LinkType: linkType, LagDays: 0 };
+        const res = await apiPost('saveLink', { user: STATE.user, link });
+        if (res.success) {
+          STATE.links.push(link);
+          showToast('Activities linked', 'success');
+          renderGanttBody();
+        }
+      }
+      ganttLinkState = null;
+    });
+  });
+}
+
+/* ---- Baseline freeze ---- */
+function openBaselineFreezeModal() {
+  openModal(`
+    <h2>Freeze baseline</h2>
+    <p style="color:var(--text-dim);margin-bottom:14px;">
+      This captures the current planned dates of every activity as a named baseline.
+      You can freeze multiple baselines over time and compare them visually on the Gantt chart.
+    </p>
+    <div class="field"><label>Baseline name</label><input id="freezeBaselineName" placeholder="e.g. Baseline 0, Revised Baseline 1"></div>
+    <div class="field"><label>Reason / notes</label><textarea id="freezeBaselineReason" rows="2"></textarea></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => freezeBaseline())">Freeze now</button>
+    </div>
+  `);
+}
+async function freezeBaseline() {
+  const name = document.getElementById('freezeBaselineName').value || ('Baseline ' + (STATE.baselines.length + 1));
+  const reason = document.getElementById('freezeBaselineReason').value;
+  closeModal();
+  showToast('Freezing baseline for ' + STATE.activities.length + ' activities…', '');
+  for (const a of STATE.activities.filter(x => x.Type === 'task')) {
+    const baseline = {
+      BaselineID: uid('BL'), BaselineName: name, BaselineType: name,
+      ActivityID: a.ActivityID, BaselineStart: a.PlannedStart, BaselineFinish: a.PlannedFinish,
+      Reason: reason, IsActive: true,
+    };
+    STATE.baselines.push(baseline);
+    await apiPost('saveBaseline', { user: STATE.user, baseline });
+  }
+  showToast('Baseline "' + name + '" frozen', 'success');
+  renderGanttBody();
+}
+</script>
+<script>
+/* =====================================================================
+   EVENTS & MILESTONES VIEW
+   ===================================================================== */
+function renderEvents(container) {
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Events &amp; milestones</h2>
+      <p style="color:var(--text-dim);font-size:12px;">
+        Mobilization, project finish, work stoppages, religious holidays, strikes and authority
+        hold points. These carry zero weight in progress calculations but appear on the dashboard
+        and as bands on the Gantt chart.
+      </p>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="openEventModal()">+ Add event</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Name</th><th>Type</th><th>Start</th><th>End</th><th>Description</th><th>Responsibility</th><th></th>
+        </tr></thead>
+        <tbody id="eventsTableBody"></tbody>
+      </table>
+    </div>
+  `;
+  renderEventsTableBody();
+}
+function renderEventsTableBody() {
+  const body = document.getElementById('eventsTableBody');
+  if (STATE.events.length === 0) {
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state">No events recorded. Add mobilization dates, holidays, or stoppages.</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = STATE.events.map(e => `
+    <tr>
+      <td>${e.EventName}</td>
+      <td>${e.EventType}</td>
+      <td>${fmtDate(e.StartDate)}</td>
+      <td>${fmtDate(e.EndDate)}</td>
+      <td>${e.Description||''}</td>
+      <td><span class="badge ${e.ResponsibleParty==='Contractor'?'delayed':e.ResponsibleParty==='Client'?'ahead':'notstarted'}">${e.ResponsibleParty||'—'}</span></td>
+      <td>
+        <button class="btn sm" onclick="openEventModal('${e.EventID}')">edit</button>
+        <button class="btn sm danger" onclick="confirmDeleteEvent('${e.EventID}')">delete</button>
+      </td>
+    </tr>`).join('');
+}
+function openEventModal(existingId) {
+  const ev = existingId ? STATE.events.find(e => e.EventID === existingId) : {};
+  openModal(`
+    <h2>${existingId ? 'Edit' : 'Add'} event</h2>
+    <div class="field"><label>Event name</label><input id="evName" value="${ev.EventName||''}" placeholder="e.g. Mobilization, Eid Holidays, Strike"></div>
+    <div class="field"><label>Event type</label>
+      <select id="evType">
+        <option value="Mobilization" ${ev.EventType==='Mobilization'?'selected':''}>Mobilization</option>
+        <option value="ProjectFinish" ${ev.EventType==='ProjectFinish'?'selected':''}>Project finish</option>
+        <option value="WorkStoppage" ${ev.EventType==='WorkStoppage'?'selected':''}>Work stoppage</option>
+        <option value="Religious" ${ev.EventType==='Religious'?'selected':''}>Religious holiday (e.g. Eid, Muharram)</option>
+        <option value="Strike" ${ev.EventType==='Strike'?'selected':''}>Strike</option>
+        <option value="AuthorityHold" ${ev.EventType==='AuthorityHold'?'selected':''}>Authority work stoppage</option>
+        <option value="Other" ${ev.EventType==='Other'?'selected':''}>Other</option>
+      </select>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label>Start date</label><input type="date" id="evStart" value="${(ev.StartDate||'').slice(0,10)}"></div>
+      <div class="field"><label>End date</label><input type="date" id="evEnd" value="${(ev.EndDate||'').slice(0,10)}"></div>
+    </div>
+    <div class="field"><label>Description</label><textarea id="evDesc" rows="2">${ev.Description||''}</textarea></div>
+    <div class="field"><label>Responsibility</label>
+      <select id="evResponsible">
+        <option value="Client" ${ev.ResponsibleParty==='Client'?'selected':''}>Client responsibility</option>
+        <option value="Contractor" ${ev.ResponsibleParty==='Contractor'?'selected':''}>Contractor responsibility</option>
+        <option value="ForceMajeure" ${ev.ResponsibleParty==='ForceMajeure'?'selected':''}>Force majeure</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveEventModal('${existingId||''}'))">Save</button>
+    </div>
+  `);
+}
+async function saveEventModal(existingId) {
+  const event = {
+    EventID: existingId || undefined,
+    EventName: document.getElementById('evName').value,
+    EventType: document.getElementById('evType').value,
+    StartDate: document.getElementById('evStart').value,
+    EndDate: document.getElementById('evEnd').value,
+    Description: document.getElementById('evDesc').value,
+    ResponsibleParty: document.getElementById('evResponsible').value,
+  };
+  const res = await apiPost('saveEvent', { user: STATE.user, event });
+  closeModal();
+  if (res.success) { showToast('Event saved', 'success'); await loadAll(); }
+  else showToast('Save failed: ' + res.error, 'error');
+}
+function confirmDeleteEvent(eventId) {
+  confirmDialog('Delete this event? This cannot be undone.', async () => {
+    const res = await apiPost('deleteEvent', { eventId });
+    if (res.success) {
+      STATE.events = STATE.events.filter(e => e.EventID !== eventId);
+      showToast('Event deleted', 'success');
+      renderEventsTableBody();
+    }
+  });
+}
+
+/* =====================================================================
+   BASELINES VIEW
+   ===================================================================== */
+function renderBaselines(container) {
+  const baselineNames = [...new Set(STATE.baselines.map(b => b.BaselineName))];
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Baselines</h2>
+      <p style="color:var(--text-dim);font-size:12px;">
+        Every time you freeze a baseline on the Gantt chart, a full snapshot of planned dates is
+        stored here. Compare any baseline against current planned dates to see drift.
+      </p>
+    </div>
+    ${baselineNames.length === 0 ? `<div class="empty-state">No baselines frozen yet. Go to the Gantt chart and click "Freeze baseline".</div>` :
+      baselineNames.map(name => renderBaselineCard(name)).join('')}
+  `;
+}
+function renderBaselineCard(name) {
+  const rows = STATE.baselines.filter(b => b.BaselineName === name && b.ActivityID !== '__PROJECT__');
+  let totalDriftDays = 0, driftCount = 0;
+  const tableRows = rows.map(b => {
+    const a = getActivityById(b.ActivityID);
+    if (!a) return '';
+    const drift = daysBetween(b.BaselineFinish, a.PlannedFinish) || 0;
+    totalDriftDays += drift; driftCount++;
+    return `<tr>
+      <td>${a.ShortDescription}</td>
+      <td>${fmtDate(b.BaselineStart)} → ${fmtDate(b.BaselineFinish)}</td>
+      <td>${fmtDate(a.PlannedStart)} → ${fmtDate(a.PlannedFinish)}</td>
+      <td><span class="badge ${drift>0?'delayed':drift<0?'ahead':'on-time'}">${drift>0?'+':''}${drift} days</span></td>
+    </tr>`;
+  }).join('');
+  const avgDrift = driftCount ? (totalDriftDays / driftCount).toFixed(1) : 0;
+  return `
+    <div class="card">
+      <h3>${name} <span style="color:var(--text-faint);font-weight:400;">(avg drift: ${avgDrift} days)</span></h3>
+      <div class="tbl-wrap"><table>
+        <tr><th>Activity</th><th>Baseline dates</th><th>Current planned dates</th><th>Drift</th></tr>
+        ${tableRows}
+      </table></div>
+    </div>`;
+}
+
+/* =====================================================================
+   USERS & SETUP VIEW
+   ===================================================================== */
+/* =====================================================================
+   RECYCLE BIN VIEW — soft-deleted activities, restorable any time
+   ===================================================================== */
+async function renderRecycleBin(container) {
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Recycle bin</h2>
+      <p style="color:var(--text-dim);font-size:12px;">
+        Activities deleted from the Activities &amp; Gantt page land here first.
+        Restore them any time, or delete forever to remove permanently.
+      </p>
+    </div>
+    <div id="recycleBinContent"><div class="empty-state">Loading…</div></div>
+  `;
+  const res = await apiGet('getRecycleBin');
+  const items = (res.success ? res.data : []) || [];
+  const el = document.getElementById('recycleBinContent');
+  if (items.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">🗑</div>Recycle bin is empty.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="tbl-wrap"><table>
+    <tr><th>Description</th><th>Deleted by</th><th>Deleted at</th><th></th></tr>
+    ${items.map(a => `
+      <tr>
+        <td>${a.ShortDescription || a.LongDescription || '(untitled)'}</td>
+        <td>${a.DeletedBy || ''}</td>
+        <td>${fmtDate(a.DeletedAt)}</td>
+        <td>
+          <button class="btn sm primary" onclick="restoreFromBin('${a.ActivityID}')">Restore</button>
+          <button class="btn sm danger" onclick="permanentlyDeleteFromBin('${a.ActivityID}')">Delete forever</button>
+        </td>
+      </tr>`).join('')}
+  </table></div>`;
+}
+async function restoreFromBin(activityId) {
+  const res = await apiPost('restoreActivity', { user: STATE.user, activityId });
+  if (res.success) { showToast('Activity restored', 'success'); await loadAll(); renderRecycleBin(document.querySelector('.view')); }
+}
+function permanentlyDeleteFromBin(activityId) {
+  confirmDialog('Permanently delete this activity? This cannot be undone — it will not be recoverable from anywhere, including the Sheet history for very long.', async () => {
+    const res = await apiPost('deleteActivity', { user: STATE.user, activityId });
+    if (res.success) { showToast('Permanently deleted', 'success'); renderRecycleBin(document.querySelector('.view')); }
+  });
+}
+
+function renderUsers(container) {
+  container.innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Users</h3>
+        <div id="usersList"></div>
+        <button class="btn primary sm" onclick="openAddUserModal()" style="margin-top:10px;">+ Add user</button>
+      </div>
+      <div class="card">
+        <h3>Color tags</h3>
+        <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">
+          Used to color Gantt bars (e.g. "Critical path", "On hold"). Filter the Gantt chart by these tags.
+        </p>
+        <div id="colorsList"></div>
+        <button class="btn primary sm" onclick="openAddColorModal()" style="margin-top:10px;">+ Add color tag</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Backend connection</h3>
+      <table>
+        <tr><td style="color:var(--text-dim)">API URL</td><td style="font-size:11px;word-break:break-all;">${CONFIG.API_URL}</td></tr>
+        <tr><td style="color:var(--text-dim)">Status</td><td>${STATE.apiReady ? '<span class="badge on-time">Connected</span>' : '<span class="badge delayed">Disconnected</span>'}</td></tr>
+        <tr><td style="color:var(--text-dim)">Signed in as</td><td>${STATE.user || '—'}</td></tr>
+      </table>
+      <button class="btn sm" onclick="loadAll()" style="margin-top:10px;">Refresh data from sheet</button>
+    </div>
+  `;
+  renderUsersList();
+  renderColorsList();
+}
+function renderUsersList() {
+  const el = document.getElementById('usersList');
+  if (STATE.users.length === 0) { el.innerHTML = `<div class="empty-state">No users added yet. Anyone with the file link can currently edit.</div>`; return; }
+  el.innerHTML = `<table>
+    <tr><th>Name</th><th>Email</th><th>Role</th></tr>
+    ${STATE.users.map(u => `<tr><td>${u.Name}</td><td>${u.Email}</td><td>${u.Role}</td></tr>`).join('')}
+  </table>`;
+}
+function openAddUserModal() {
+  openModal(`
+    <h2>Add user</h2>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:12px;">
+      Note: this is a record of who should have access — actual edit permission is controlled by
+      who you share the Google Sheet / hosted file with. This list is for tracking and the
+      "signed in as" name dropdown.
+    </p>
+    <div class="field"><label>Name</label><input id="newUserName"></div>
+    <div class="field"><label>Email</label><input id="newUserEmail" type="email"></div>
+    <div class="field"><label>Role</label>
+      <select id="newUserRole"><option>Project Manager</option><option>Site Engineer</option><option>Planning Engineer</option><option>Client Representative</option><option>Consultant</option><option>Viewer</option></select>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveNewUser())">Add user</button>
+    </div>
+  `);
+}
+async function saveNewUser() {
+  const userRecord = {
+    Name: document.getElementById('newUserName').value,
+    Email: document.getElementById('newUserEmail').value,
+    Role: document.getElementById('newUserRole').value,
+  };
+  const res = await apiPost('addUser', { user: STATE.user, userRecord });
+  closeModal();
+  if (res.success) { showToast('User added', 'success'); await loadAll(); }
+}
+function renderColorsList() {
+  const el = document.getElementById('colorsList');
+  el.innerHTML = STATE.colors.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+      <span class="color-swatch" style="background:${c.HexCode}"></span>
+      <span style="flex:1;">${c.ColorName}</span>
+      <span style="color:var(--text-faint);font-size:11px;">${c.HexCode}</span>
+    </div>
+  `).join('');
+}
+function openAddColorModal() {
+  openModal(`
+    <h2>Add color tag</h2>
+    <div class="field"><label>Name</label><input id="newColorName" placeholder="e.g. Awaiting material"></div>
+    <div class="field"><label>Color</label><input type="color" id="newColorHex" value="#3B82F6"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveNewColor())">Add</button>
+    </div>
+  `);
+}
+async function saveNewColor() {
+  const color = { ColorName: document.getElementById('newColorName').value, HexCode: document.getElementById('newColorHex').value };
+  const res = await apiPost('saveColor', { user: STATE.user, color });
+  closeModal();
+  if (res.success) { showToast('Color tag added', 'success'); await loadAll(); }
+}
+</script>
+
+<style media="print">
+  #topbar, .toolbar, .gantt-toolbar, .btn, #toastContainer, .modal-overlay { display:none !important; }
+  body { background:#fff; color:#000; }
+  .card, .stat-card { border:1px solid #ccc; background:#fff; }
+  table, th, td { color:#000; border-color:#ccc; }
+</style>
+</body>
+</html>
