@@ -106,7 +106,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Project</th><th>Code</th><th>Contractor</th><th>Client</th><th>Status</th><th>Created</th><th></th>
+        <th>Project</th><th>Code</th><th>Contractor</th><th>Supervisor</th><th>Status</th><th>Created</th><th></th>
       </tr></thead>
       <tbody id="projectsTableBody"><tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr></tbody>
     </table>
@@ -118,8 +118,8 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 
 <script>
 const CONFIG = {
-  PORTFOLIO_API_URL: 'https://script.google.com/macros/s/AKfycbxfMJgOmXdo7n-WDvbQkfaW4krEpGocI4XUVFvSIm4aeIrBasww-Fwnr9Oe69m32oN1/exec',
-  PROJECT_APP_URL: 'https://shabbir-mcb.github.io/hs-MCB-planner/Project_App.html',
+  PORTFOLIO_API_URL: 'PASTE_YOUR_PORTFOLIO_APPS_SCRIPT_WEB_APP_URL_HERE',
+  PROJECT_APP_URL: 'PASTE_THE_URL_WHERE_YOU_HOST_Project_App.html_HERE',
 };
 
 let STATE = { projects: [] };
@@ -273,7 +273,7 @@ function openCreateProjectModal() {
     </div>
     <div class="grid-2">
       <div class="field"><label>Consultant name</label><input id="npConsultant"></div>
-      <div class="field"><label>Client name</label><input id="npClient"></div>
+      <div class="field"><label>Supervisor / senior name</label><input id="npClient"></div>
     </div>
     <div class="actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -321,7 +321,7 @@ function openEditProjectModal(projectKey) {
       <div class="field"><label>Contractor name</label><input id="epContractor" value="${p.ContractorName||''}"></div>
       <div class="field"><label>Consultant name</label><input id="epConsultant" value="${p.ConsultantName||''}"></div>
     </div>
-    <div class="field"><label>Client name</label><input id="epClient" value="${p.ClientName||''}"></div>
+    <div class="field"><label>Supervisor / senior name</label><input id="epClient" value="${p.ClientName||''}"></div>
     <div class="actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn primary" onclick="guardedClick(event, () => saveProjectEdit('${projectKey}'))">Save</button>
@@ -385,13 +385,13 @@ function openProjectLinks(projectKey) {
       <button class="btn sm" onclick="guardedClick(event, () => regenerateLink('${p.ProjectKey}','ContractorLinkKey'))" title="Invalidate the old link and generate a new one">↻</button>
     </div>
     <div class="link-row">
-      <span class="link-row-label">Client (view only)</span>
+      <span class="link-row-label">Supervisor (view)</span>
       <input readonly value="${buildProjectLink(p.ClientViewLinkKey)}" onclick="this.select()">
       <button class="btn sm" onclick="copyLink('${buildProjectLink(p.ClientViewLinkKey)}')">Copy</button>
       <button class="btn sm" onclick="guardedClick(event, () => regenerateLink('${p.ProjectKey}','ClientViewLinkKey'))" title="Invalidate the old link and generate a new one">↻</button>
     </div>
     <div class="link-row">
-      <span class="link-row-label">Client (can edit)</span>
+      <span class="link-row-label">Supervisor (edit)</span>
       <input readonly value="${buildProjectLink(p.ClientEditLinkKey)}" onclick="this.select()">
       <button class="btn sm" onclick="copyLink('${buildProjectLink(p.ClientEditLinkKey)}')">Copy</button>
       <button class="btn sm" onclick="guardedClick(event, () => regenerateLink('${p.ProjectKey}','ClientEditLinkKey'))" title="Invalidate the old link and generate a new one">↻</button>
