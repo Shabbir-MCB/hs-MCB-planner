@@ -190,9 +190,94 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .color-swatch{width:14px;height:14px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.2);}
 
 .delay-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE LAYOUT — works correctly in PORTRAIT, the way people
+   actually hold a phone. No control should ever only appear
+   in landscape; this rewrites the navigation and density for
+   narrow screens regardless of orientation.
+   ═══════════════════════════════════════════════════════════ */
+@media(max-width:760px){
+  body{padding-bottom:64px;} /* room for the bottom tab bar */
+
+  /* Top bar becomes a slim header; the tab buttons move to a
+     fixed bottom bar instead of a horizontally-scrolling row
+     that silently clips off-screen with no visual hint. */
+  #topbar{height:auto;flex-wrap:wrap;padding:8px 12px;gap:8px;}
+  #topbar .logo{font-size:14px;}
+  #tabs{display:none;} /* replaced by #mobileTabBar below */
+  #apiStatus{font-size:10px;}
+  #userBadge{font-size:11px;width:100%;order:10;}
+
+  #mobileTabBar{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;
+    background:var(--panel);border-top:1px solid var(--border);
+    overflow-x:auto;scrollbar-width:none;
+  }
+  #mobileTabBar::-webkit-scrollbar{display:none;}
+  #mobileTabBar .mtab{
+    flex:1 0 auto;min-width:64px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;padding:8px 10px;color:var(--text-dim);
+    font-size:10px;text-decoration:none;border:none;background:none;font-family:inherit;
+  }
+  #mobileTabBar .mtab .micon{font-size:18px;}
+  #mobileTabBar .mtab.active{color:var(--accent);}
+
+  /* every primary action becomes a comfortably large tap target —
+     44px is the standard minimum comfortable touch size */
+  .btn{padding:10px 14px;font-size:14px;min-height:40px;}
+  .btn.sm{padding:8px 12px;font-size:13px;min-height:34px;}
+  input,select,textarea{font-size:15px;padding:10px;} /* 15px+ avoids iOS auto-zoom-on-focus */
+
+  .view{padding:10px;}
+  .card{padding:12px;}
+  .toolbar{flex-direction:column;align-items:stretch;}
+  .toolbar input[type=search],.toolbar input[type=text]{min-width:0;width:100%;}
+  .toolbar .spacer{display:none;}
+  .stat-row{flex-direction:column;}
+  .stat-card{min-width:0;}
+
+  /* Tables don't shrink to fit a phone — they get a horizontal
+     scroll container instead, with a visible shadow hint so it's
+     obvious there's more to the right (no relying on orientation
+     to reveal columns). */
+  .tbl-wrap{max-height:60vh;}
+  table{font-size:12px;}
+  th,td{padding:6px 8px;}
+
+  /* Gantt is the hardest thing to fit on a phone honestly — make
+     it horizontally scrollable and let pinch-zoom work natively
+     rather than trying to cram a full schedule into 360px. */
+  #ganttGrid{width:160px;}
+  .gantt-row-label{font-size:11px;padding:0 6px;}
+  .modal{width:94vw;padding:16px;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+}
+
+/* Simplified contractor view: when the access level is Contractor,
+   collapse the dense desktop activity table into a card list that's
+   actually usable with a thumb — big % input, clear dates, no tiny
+   inline-table editing. */
+body.contractor-mobile-view .activities-desktop-table{display:none;}
+body.contractor-mobile-view .activities-mobile-cards{display:block;}
+.activities-mobile-cards{display:none;}
+.activity-mobile-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:14px;margin-bottom:10px;
+}
+.activity-mobile-card .amc-title{font-size:14px;font-weight:600;margin-bottom:8px;}
+.activity-mobile-card .amc-dates{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-bottom:10px;}
+.activity-mobile-card .amc-progress-row{display:flex;align-items:center;gap:10px;}
+.activity-mobile-card .amc-progress-row input{width:80px;font-size:18px;text-align:center;font-weight:700;}
+.mobile-search-toolbar{display:none;}
+body.contractor-mobile-view .desktop-import-toolbar{display:none !important;}
+body.contractor-mobile-view #ganttWrap{display:none;}
+body.contractor-mobile-view .mobile-search-toolbar{display:flex !important;}
 </style>
 </head>
 <body>
+
+<div id="mobileTabBar"></div>
 
 <div id="topbar">
   <div class="logo">HS <span>Project Planner</span></div>
@@ -203,6 +288,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
     <button class="tab-btn" data-view="events">Events &amp; milestones</button>
     <button class="tab-btn" data-view="baselines">Baselines</button>
     <button class="tab-btn" data-view="recyclebin">Recycle bin</button>
+    <button class="tab-btn" data-view="history">Activity history</button>
     <button class="tab-btn" data-view="users">Users &amp; setup</button>
   </div>
   <span id="apiStatus" class="pending">Connecting…</span>
@@ -237,7 +323,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
    type it in here.
    ===================================================================== */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbziFrnPjxjdx9JzFtrGvyvQ4lC06mlEFN3QFXIPJ4-iiZrZNiWXceSLHtFsgSKOKKKs8g/exec',
+  API_URL: 'PASTE_YOUR_SHARED_ROUTER_WEB_APP_URL_HERE',
   DAY_WIDTH: { day: 24, week: 10, month: 4 },
   PROJECT_KEY: new URLSearchParams(window.location.search).get('key') || '',
 };
@@ -258,7 +344,7 @@ let STATE = {
   ganttColorFilter: null,
   searchTerm: '',
   apiReady: false,
-  accessLevel: 'Owner', // 'Owner' | 'Contractor' | 'ClientView' | 'ClientEdit' — set after first load
+  accessLevel: 'Owner', // 'Owner' | 'Contractor' | 'SupervisorView' | 'SupervisorEdit' — set after first load
   readOnly: false,
 };
 
@@ -317,7 +403,7 @@ async function loadAll() {
     STATE.colors = res.data.colors || [];
     STATE.preAward = res.data.preAward || [];
     STATE.accessLevel = res.accessLevel || 'Owner';
-    STATE.readOnly = (STATE.accessLevel === 'ClientView');
+    STATE.readOnly = (STATE.accessLevel === 'SupervisorView');
     STATE.apiReady = true;
     setApiStatus('ok', 'Connected' + (STATE.readOnly ? ' (view only)' : ''));
     updateAccessLevelBadge();
@@ -336,12 +422,17 @@ async function loadAll() {
       </div>`;
   }
 }
+function canEditBaselines() {
+  return STATE.accessLevel === 'Owner' || STATE.accessLevel === 'SupervisorEdit';
+}
+
 function updateAccessLevelBadge() {
   const badge = document.getElementById('userBadge');
   if (!badge) return;
-  const levelLabel = { Owner: '', Contractor: ' · Contractor view', ClientView: ' · Client (view only)', ClientEdit: ' · Client (edit)' }[STATE.accessLevel] || '';
+  const levelLabel = { Owner: '', Contractor: ' · Contractor view', SupervisorView: ' · Supervisor (view only)', SupervisorEdit: ' · Supervisor (edit)' }[STATE.accessLevel] || '';
   badge.textContent = (STATE.user ? ('Signed in as ' + STATE.user) : 'Not signed in') + levelLabel;
   document.body.classList.toggle('read-only-mode', STATE.readOnly);
+  document.body.classList.toggle('contractor-mobile-view', STATE.accessLevel === 'Contractor' && window.innerWidth <= 760);
 }
 
 /* ---------------- TOASTS ---------------- */
@@ -366,17 +457,45 @@ function ensureUser() {
   document.getElementById('userBadge').textContent = STATE.user ? ('Signed in as ' + STATE.user) : 'Not signed in';
 }
 
-/* ---------------- TAB NAVIGATION ---------------- */
+/* ---------------- TAB NAVIGATION (desktop tabs + mobile bottom bar) ---------------- */
+const NAV_ITEMS = [
+  { view: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { view: 'boq', label: 'BOQ', icon: '📋' },
+  { view: 'activities', label: 'Activities', icon: '📅' },
+  { view: 'events', label: 'Events', icon: '🚧' },
+  { view: 'baselines', label: 'Baselines', icon: '📌' },
+  { view: 'history', label: 'History', icon: '🕘' },
+  { view: 'recyclebin', label: 'Recycle', icon: '🗑' },
+  { view: 'users', label: 'Setup', icon: '⚙' },
+];
+
+function setActiveView(view) {
+  STATE.currentView = view;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('#mobileTabBar .mtab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  renderCurrentView();
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    STATE.currentView = btn.dataset.view;
-    renderCurrentView();
-  });
+  btn.addEventListener('click', () => setActiveView(btn.dataset.view));
 });
 
+function renderMobileTabBar() {
+  const bar = document.getElementById('mobileTabBar');
+  if (!bar) return;
+  bar.innerHTML = NAV_ITEMS.map(item => `
+    <button class="mtab ${STATE.currentView===item.view?'active':''}" data-view="${item.view}">
+      <span class="micon">${item.icon}</span>
+      <span>${item.label}</span>
+    </button>
+  `).join('');
+  bar.querySelectorAll('.mtab').forEach(btn => {
+    btn.addEventListener('click', () => setActiveView(btn.dataset.view));
+  });
+}
+
 function renderCurrentView() {
+  renderMobileTabBar();
   const root = document.getElementById('root');
   root.innerHTML = '';
   const view = document.createElement('div');
@@ -389,6 +508,7 @@ function renderCurrentView() {
     case 'events': renderEvents(view); break;
     case 'baselines': renderBaselines(view); break;
     case 'recyclebin': renderRecycleBin(view); break;
+    case 'history': renderActivityHistory(view); break;
     case 'users': renderUsers(view); break;
   }
 }
@@ -407,6 +527,23 @@ function daysBetween(a, b) {
 }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 function uid(prefix) { return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 9999); }
+
+/* ---- Off-days / non-working calendar (user-defined per project) ----
+   Stored as JSON inside ProjectInfo.OffDaysJSON:
+   { weeklyOff: [0,5,6] (0=Sun..6=Sat), specificDates: ["2026-03-21","2026-03-22"] }
+   Kept deliberately simple — no holiday-provider integration, exactly
+   as scoped: "keep this user defined." */
+function getOffDaysConfig() {
+  try { return JSON.parse(STATE.projectInfo.OffDaysJSON || '{"weeklyOff":[],"specificDates":[]}'); }
+  catch (e) { return { weeklyOff: [], specificDates: [] }; }
+}
+function isOffDay(dateObj) {
+  const cfg = getOffDaysConfig();
+  const iso = dateObj.toISOString().slice(0, 10);
+  if (cfg.specificDates.includes(iso)) return true;
+  if (cfg.weeklyOff.includes(dateObj.getDay())) return true;
+  return false;
+}
 
 function getDelayStatus(act) {
   // returns {label, cssClass} based on planned vs actual
@@ -509,6 +646,12 @@ function confirmDialog(message, onConfirm) {
 }
 
 /* ---------------- INIT ---------------- */
+window.addEventListener('resize', () => {
+  // re-evaluate on orientation change so nothing is ever permanently
+  // hidden just because the phone was rotated once at load time
+  updateAccessLevelBadge();
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   ensureUser();
   if (CONFIG.API_URL.indexOf('PASTE_YOUR') === 0) {
@@ -1540,6 +1683,199 @@ async function confirmActivityImport() {
     showToast('Import failed: ' + res.error, 'error');
   }
 }
+
+/* =====================================================================
+   MS PROJECT IMPORT — XML export and Excel export
+   MS Project itself (.mpp) is a closed binary format we cannot parse
+   in a browser. Instead, this reads MS Project's own "Save As > XML"
+   export, or a plain Excel export of the schedule — picking up activity
+   name/ID, start, finish, duration, and predecessor links automatically,
+   without asking the contractor to do any manual column mapping for the
+   XML path (the structure is fixed and known in advance).
+   ===================================================================== */
+function handleMSProjectFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const isXml = /\.xml$/i.test(file.name);
+  const reader = new FileReader();
+  if (isXml) {
+    reader.onload = (e) => parseMSProjectXML(e.target.result);
+    reader.readAsText(file);
+  } else {
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (rows.length < 2) { showToast('File has no data rows', 'error'); return; }
+      // MS Project's Excel export has fairly predictable headers
+      // (ID, Task Name, Duration, Start, Finish, Predecessors) — reuse
+      // the existing column-mapping screen but pre-bias the guesses.
+      openActivityColumnMappingModal(rows);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  event.target.value = '';
+}
+
+function parseMSProjectDuration(durationStr) {
+  // MS Project XML encodes duration as ISO 8601-like "PT40H0M0S" (hours).
+  // Convert to whole days assuming an 8-hour working day, MS Project's
+  // own default — good enough for a planning-level import, not meant
+  // to replace MS Project's own resource-calendar precision.
+  if (!durationStr) return null;
+  const match = /PT(?:([\d.]+)H)?(?:([\d.]+)M)?/.exec(durationStr);
+  if (!match) return null;
+  const hours = parseFloat(match[1] || 0) + (parseFloat(match[2] || 0) / 60);
+  return Math.max(1, Math.round(hours / 8));
+}
+
+function parseMSProjectXML(xmlText) {
+  let xmlDoc;
+  try {
+    xmlDoc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    if (xmlDoc.querySelector('parsererror')) throw new Error('Malformed XML');
+  } catch (err) {
+    showToast('Could not read this XML file: ' + err.message, 'error');
+    return;
+  }
+
+  const taskNodes = [...xmlDoc.querySelectorAll('Task')];
+  if (taskNodes.length === 0) {
+    showToast('No <Task> entries found — is this really an MS Project XML export?', 'error');
+    return;
+  }
+
+  // First pass: build all tasks, keyed by their MS Project UID (needed to resolve predecessor links)
+  const tasksByUID = {};
+  const importedActivities = [];
+  const pendingLinks = []; // { predecessorUID, successorUID, linkType, lag }
+
+  taskNodes.forEach(node => {
+    const uid = node.querySelector('UID')?.textContent;
+    const name = node.querySelector('Name')?.textContent;
+    if (!uid || !name) return; // skip the project summary row and any malformed entries
+    const isSummary = node.querySelector('Summary')?.textContent === '1';
+    const isMilestone = node.querySelector('Milestone')?.textContent === '1';
+    const startStr = node.querySelector('Start')?.textContent;
+    const finishStr = node.querySelector('Finish')?.textContent;
+    const durationStr = node.querySelector('Duration')?.textContent;
+    const pctComplete = node.querySelector('PercentComplete')?.textContent;
+    const outlineLevel = node.querySelector('OutlineLevel')?.textContent;
+
+    const activity = {
+      _msUID: uid,
+      WBS_Code: node.querySelector('WBS')?.textContent || node.querySelector('OutlineNumber')?.textContent || '',
+      LongDescription: name,
+      ShortDescription: autoShortDescription(name),
+      Type: isMilestone ? 'milestone' : 'task',
+      PlannedStart: startStr ? startStr.slice(0, 10) : '',
+      PlannedFinish: finishStr ? finishStr.slice(0, 10) : '',
+      DurationDays: parseMSProjectDuration(durationStr),
+      PercentComplete: pctComplete || 0,
+      Group1: outlineLevel === '1' ? name : '', // top-level summary tasks become group labels
+      WeightFactor: isSummary ? 0 : 1, // don't double-count summary rollup rows in progress math
+    };
+    tasksByUID[uid] = activity;
+    if (!isSummary) importedActivities.push(activity);
+
+    // predecessor links live as repeated <PredecessorLink> children of each task
+    node.querySelectorAll('PredecessorLink').forEach(link => {
+      const predUID = link.querySelector('PredecessorUID')?.textContent;
+      const typeCode = link.querySelector('Type')?.textContent;
+      const lagStr = link.querySelector('LinkLag')?.textContent;
+      if (!predUID) return;
+      // MS Project link type codes: 0=FF, 1=FS, 2=SF, 3=SS
+      const typeMap = { '0': 'FF', '1': 'FS', '2': 'SF', '3': 'SS' };
+      pendingLinks.push({
+        predecessorUID: predUID,
+        successorUID: uid,
+        linkType: typeMap[typeCode] || 'FS',
+        // LinkLag is in tenths of minutes in MS Project XML; convert to whole days
+        lagDays: lagStr ? Math.round(parseInt(lagStr) / 10 / 60 / 8) : 0,
+      });
+    });
+  });
+
+  if (importedActivities.length === 0) {
+    showToast('No importable tasks found (only summary rows detected)', 'error');
+    return;
+  }
+
+  window._pendingMSProjectImport = { activities: importedActivities, links: pendingLinks, tasksByUID };
+  openMSProjectImportPreview();
+}
+
+function openMSProjectImportPreview() {
+  const { activities, links } = window._pendingMSProjectImport;
+  const milestoneCount = activities.filter(a => a.Type === 'milestone').length;
+  openModal(`
+    <h2>Import from MS Project</h2>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:14px;">
+      Found <b>${activities.length}</b> tasks (${milestoneCount} milestone${milestoneCount===1?'':'s'})
+      and <b>${links.length}</b> predecessor link${links.length===1?'':'s'} in this file.
+      Review the first few rows below, then import.
+    </p>
+    <div class="tbl-wrap" style="max-height:220px;">
+      <table>
+        <tr><th>Name</th><th>Start</th><th>Finish</th><th>Duration</th><th>% Complete</th></tr>
+        ${activities.slice(0, 8).map(a => `
+          <tr><td>${a.ShortDescription}</td><td>${fmtDate(a.PlannedStart)}</td><td>${fmtDate(a.PlannedFinish)}</td>
+              <td>${a.DurationDays||''}d</td><td>${a.PercentComplete}%</td></tr>`).join('')}
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);margin-top:6px;">
+      Showing first 8 of ${activities.length} rows. Predecessor links will be created automatically
+      after import, matched to the newly created activities.
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => confirmMSProjectImport())">Import ${activities.length} tasks + ${links.length} links</button>
+    </div>
+  `);
+}
+
+async function confirmMSProjectImport() {
+  const { activities, links, tasksByUID } = window._pendingMSProjectImport;
+  closeModal();
+  showToast('Importing ' + activities.length + ' tasks from MS Project…', '');
+
+  const rowsToImport = activities.map(a => {
+    const clean = { ...a };
+    delete clean._msUID;
+    return clean;
+  });
+  const res = await apiPost('bulkImportActivities', { user: STATE.user, rows: rowsToImport });
+  if (!res.success) {
+    showToast('Import failed: ' + res.error, 'error');
+    return;
+  }
+  await loadAll();
+
+  // Resolve MS Project UIDs to the new ActivityIDs the backend just
+  // generated, by matching on description + start date (best-effort —
+  // good enough since we just imported these seconds ago and they're
+  // not yet mixed with unrelated activities of the same name).
+  let linksCreated = 0, linksSkipped = 0;
+  for (const link of links) {
+    const predTask = tasksByUID[link.predecessorUID];
+    const succTask = tasksByUID[link.successorUID];
+    if (!predTask || !succTask || predTask.WeightFactor === 0 || succTask.WeightFactor === 0) { linksSkipped++; continue; }
+    const predActivity = STATE.activities.find(x => x.ShortDescription === predTask.ShortDescription && x.PlannedStart === predTask.PlannedStart);
+    const succActivity = STATE.activities.find(x => x.ShortDescription === succTask.ShortDescription && x.PlannedStart === succTask.PlannedStart);
+    if (!predActivity || !succActivity) { linksSkipped++; continue; }
+    const linkObj = { LinkID: uid('LNK'), PredecessorID: predActivity.ActivityID, SuccessorID: succActivity.ActivityID, LinkType: link.linkType, LagDays: link.lagDays };
+    const linkRes = await apiPost('saveLink', { user: STATE.user, link: linkObj });
+    if (linkRes.success) { STATE.links.push(linkObj); linksCreated++; } else linksSkipped++;
+  }
+
+  showToast(`Imported ${res.imported} tasks and recreated ${linksCreated} links` + (linksSkipped ? ` (${linksSkipped} links could not be matched — link these manually if needed)` : ''), 'success');
+  setLastUndo(`Imported ${res.imported} activities from MS Project just now.`, async () => {
+    const undoRes = await apiPost('undoImportBatch', { user: STATE.user, batchId: res.batchId });
+    if (undoRes.success) showToast('Import undone — removed ' + undoRes.removed + ' activities', 'success');
+  });
+  await loadAll();
+}
 </script>
 <script>
 /* =====================================================================
@@ -1554,7 +1890,7 @@ let lastActionUndo = null; // { label, undoFn }
 function renderActivitiesAndGantt(container) {
   container.innerHTML = `
     <div id="undoBanner" style="display:none;"></div>
-    <div class="toolbar">
+    <div class="toolbar desktop-import-toolbar">
       <h2 style="font-size:18px;">Activities &amp; Gantt</h2>
       <div class="spacer"></div>
       <input type="search" id="actSearch" placeholder="Search activities…" oninput="renderActivitiesTableBody()">
@@ -1564,15 +1900,21 @@ function renderActivitiesAndGantt(container) {
       </select>
       <button class="btn" onclick="document.getElementById('actFileInput').click()">Upload Excel/CSV</button>
       <input type="file" id="actFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleActivityFileUpload(event)">
+      <button class="btn" onclick="document.getElementById('msProjectFileInput').click()" title="Import MS Project XML export or Excel export">📋 Import from MS Project</button>
+      <input type="file" id="msProjectFileInput" accept=".xml,.xlsx,.xls" style="display:none" onchange="handleMSProjectFileUpload(event)">
       <button class="btn" onclick="openPasteActivitiesModal()">Paste from clipboard</button>
       <button class="btn primary" onclick="openActivityModal()">+ Add activity</button>
+    </div>
+    <div class="toolbar mobile-search-toolbar" style="display:none;">
+      <input type="search" id="actSearchMobile" placeholder="Search your activities…" oninput="syncMobileSearch(this.value)">
     </div>
     <div class="toolbar" id="bulkActionsBar" style="display:none;">
       <span id="bulkSelectedCount" style="color:var(--text-dim);font-size:12px;"></span>
       <button class="btn sm danger" onclick="confirmBulkDelete()">Delete selected</button>
       <button class="btn sm" onclick="clearSelection()">Clear selection</button>
     </div>
-    <div class="tbl-wrap" style="max-height:38vh;">
+
+    <div class="tbl-wrap activities-desktop-table" style="max-height:38vh;">
       <table>
         <thead><tr>
           <th><input type="checkbox" id="selectAllActivities" onchange="toggleSelectAll(this.checked)"></th>
@@ -1583,7 +1925,9 @@ function renderActivitiesAndGantt(container) {
       </table>
     </div>
 
-    <div class="gantt-toolbar" style="margin-top:18px;">
+    <div class="activities-mobile-cards" id="activitiesMobileCards"></div>
+
+    <div class="gantt-toolbar desktop-import-toolbar" style="margin-top:18px;">
       <h2 style="font-size:16px;">Gantt chart</h2>
       <div class="zoom-controls">
         <button class="btn sm" onclick="setGanttZoom('day')" title="Zoom in: day view">Day</button>
@@ -1601,7 +1945,8 @@ function renderActivitiesAndGantt(container) {
         ${STATE.colors.map(c=>`<option value="${c.ColorTagID}">${c.ColorName}</option>`).join('')}
       </select>
       <div class="spacer"></div>
-      <button class="btn" onclick="openBaselineFreezeModal()">Freeze baseline</button>
+      <button class="btn sm" onclick="openOffDaysModal()">📅 Off-days calendar</button>
+      ${canEditBaselines() ? `<button class="btn" onclick="openBaselineFreezeModal()">Freeze baseline</button>` : `<span style="font-size:11px;color:var(--text-faint);">🔒 Only the owner or an editing supervisor can freeze baselines</span>`}
       <button class="btn" onclick="window.print()">Print Gantt</button>
     </div>
     <div id="ganttWrap">
@@ -1613,6 +1958,7 @@ function renderActivitiesAndGantt(container) {
       <span><span class="color-swatch" style="background:#9C6F00"></span> Baseline</span>
       <span><span class="gantt-milestone" style="position:relative;display:inline-block;width:14px;height:10px;transform:none;border-bottom-width:10px;"></span> Milestone</span>
       <span><span style="display:inline-block;width:14px;height:10px;background:repeating-linear-gradient(45deg,rgba(255,183,77,0.3),rgba(255,183,77,0.3) 4px,transparent 4px,transparent 8px);border:1px dashed #FFB74D;"></span> Non-progress event</span>
+      <span><span style="display:inline-block;width:14px;height:10px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0) 0,rgba(255,255,255,0) 3px,rgba(15,20,25,0.7) 3px,rgba(15,20,25,0.7) 6px);border-left:1px dotted #fff;border-right:1px dotted #fff;"></span> Off-day (within bar)</span>
       <span style="color:var(--red);">| Today</span>
     </div>
   `;
@@ -1646,12 +1992,46 @@ function setLastUndo(label, undoFn) {
   renderUndoBanner();
 }
 
+function syncMobileSearch(value) {
+  const desktopSearch = document.getElementById('actSearch');
+  if (desktopSearch) desktopSearch.value = value;
+  renderActivitiesTableBody();
+}
+
+function renderActivitiesMobileCards(acts) {
+  const container = document.getElementById('activitiesMobileCards');
+  if (!container) return;
+  if (acts.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">⚒</div>No activities assigned yet.</div>`;
+    return;
+  }
+  container.innerHTML = acts.map(a => {
+    const status = getDelayStatus(a);
+    return `
+      <div class="activity-mobile-card">
+        <div class="amc-title">${a.ShortDescription || '(untitled)'}</div>
+        <div class="amc-dates">
+          <span>Start: ${fmtDate(a.PlannedStart)}</span>
+          <span>Finish: ${fmtDate(a.PlannedFinish)}</span>
+        </div>
+        <div class="amc-progress-row">
+          <input type="number" min="0" max="100" value="${a.PercentComplete||0}"
+            onchange="quickUpdateProgress('${a.ActivityID}', this.value)">
+          <span style="font-size:16px;color:var(--text-dim);">% complete</span>
+        </div>
+        <div class="amc-status"><span class="badge ${status.cls}">${status.label}</span></div>
+      </div>`;
+  }).join('');
+}
+
 function renderActivitiesTableBody() {
-  const search = (document.getElementById('actSearch')?.value || '').toLowerCase();
+  const search = (document.getElementById('actSearch')?.value || document.getElementById('actSearchMobile')?.value || '').toLowerCase();
   const groupFilter = document.getElementById('actGroupFilter')?.value || '';
   let acts = STATE.activities;
   if (search) acts = acts.filter(a => (a.ShortDescription||'').toLowerCase().includes(search) || (a.ActivityID||'').toLowerCase().includes(search));
   if (groupFilter) acts = acts.filter(a => a.Group1 === groupFilter);
+
+  renderActivitiesMobileCards(acts);
 
   const body = document.getElementById('activitiesTableBody');
   if (!body) return;
@@ -2066,6 +2446,27 @@ function renderGanttBody() {
         <div class="link-handle left" title="Drag to link as successor"></div>
         <div class="link-handle right" title="Drag to link as predecessor"></div>
       </div>`;
+
+    // off-day dotted breaks: draw a thin dotted strip over each non-working
+    // day that falls within this activity's span, so the bar visually shows
+    // the gap instead of implying continuous work through a holiday/Friday.
+    {
+      const offCfg = getOffDaysConfig();
+      if (offCfg.weeklyOff.length || offCfg.specificDates.length) {
+        let dayCursor = new Date(a.PlannedStart);
+        const finishDate = new Date(a.PlannedFinish);
+        while (dayCursor <= finishDate) {
+          if (isOffDay(dayCursor)) {
+            const offLeft = Math.round((dayCursor - start) / 86400000) * dayW;
+            bodyHTML += `<div style="position:absolute;left:${offLeft}px;top:${top+5}px;width:${dayW}px;height:calc(var(--gantt-row-h) - 10px);
+              background:repeating-linear-gradient(45deg,rgba(255,255,255,0.0) 0,rgba(255,255,255,0.0) 3px,rgba(15,20,25,0.55) 3px,rgba(15,20,25,0.55) 6px);
+              border-left:1px dotted rgba(255,255,255,0.6);border-right:1px dotted rgba(255,255,255,0.6);z-index:2;pointer-events:none;"
+              title="Non-working day"></div>`;
+          }
+          dayCursor.setDate(dayCursor.getDate() + 1);
+        }
+      }
+    }
   });
 
   // dependency link lines (simple elbow connectors)
@@ -2226,6 +2627,91 @@ async function freezeBaseline() {
   showToast('Baseline "' + name + '" frozen', 'success');
   renderGanttBody();
 }
+
+/* ---- Off-days calendar modal ---- */
+function openOffDaysModal() {
+  const cfg = getOffDaysConfig();
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  openModal(`
+    <h2>Off-days calendar</h2>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:14px;">
+      Define non-working days for this project. They'll show as a dotted-line break
+      across the Gantt bars instead of solid progress, and won't count toward duration.
+      This calendar is set per project — define whatever fits this specific site.
+    </p>
+    <div class="field">
+      <label>Weekly day(s) off</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${dayNames.map((d,i) => `
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;">
+            <input type="checkbox" class="weeklyOffCheck" value="${i}" ${cfg.weeklyOff.includes(i)?'checked':''}> ${d}
+          </label>`).join('')}
+      </div>
+    </div>
+    <div class="field">
+      <label>Specific dates off (holidays, Eid, Muharram, declared stoppages, etc.)</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="date" id="newOffDate">
+        <input type="text" id="newOffDateLabel" placeholder="Label (e.g. Eid al-Fitr)" style="flex:1;">
+        <button class="btn sm" onclick="addSpecificOffDate()">+ Add</button>
+      </div>
+      <div id="specificOffDatesList"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveOffDaysConfig())">Save calendar</button>
+    </div>
+  `);
+  window._pendingOffDaysSpecific = cfg.specificDates.map(d => ({ date: d, label: '' }));
+  // recover labels if previously stored as objects, fall back gracefully if just strings
+  try {
+    const rawCfg = JSON.parse(STATE.projectInfo.OffDaysJSON || '{}');
+    if (rawCfg.specificDatesWithLabels) window._pendingOffDaysSpecific = rawCfg.specificDatesWithLabels;
+  } catch(e) {}
+  renderSpecificOffDatesList();
+}
+function renderSpecificOffDatesList() {
+  const list = window._pendingOffDaysSpecific || [];
+  document.getElementById('specificOffDatesList').innerHTML = list.length === 0
+    ? `<div style="color:var(--text-faint);font-size:12px;">No specific dates added yet.</div>`
+    : list.map((d, idx) => `
+      <div class="chip">${fmtDate(d.date)}${d.label ? ' — ' + d.label : ''}
+        <span class="x" onclick="removeSpecificOffDate(${idx})">✕</span>
+      </div>`).join('');
+}
+function addSpecificOffDate() {
+  const date = document.getElementById('newOffDate').value;
+  const label = document.getElementById('newOffDateLabel').value;
+  if (!date) { showToast('Pick a date first', 'error'); return; }
+  window._pendingOffDaysSpecific = window._pendingOffDaysSpecific || [];
+  window._pendingOffDaysSpecific.push({ date, label });
+  document.getElementById('newOffDate').value = '';
+  document.getElementById('newOffDateLabel').value = '';
+  renderSpecificOffDatesList();
+}
+function removeSpecificOffDate(idx) {
+  window._pendingOffDaysSpecific.splice(idx, 1);
+  renderSpecificOffDatesList();
+}
+async function saveOffDaysConfig() {
+  const weeklyOff = [...document.querySelectorAll('.weeklyOffCheck:checked')].map(cb => parseInt(cb.value));
+  const specificDatesWithLabels = window._pendingOffDaysSpecific || [];
+  const offDaysConfig = {
+    weeklyOff,
+    specificDates: specificDatesWithLabels.map(d => d.date),
+    specificDatesWithLabels,
+  };
+  const json = JSON.stringify(offDaysConfig);
+  const res = await apiPost('saveProjectInfo', { user: STATE.user, info: { OffDaysJSON: json } });
+  if (res.success) {
+    STATE.projectInfo.OffDaysJSON = json;
+    closeModal();
+    showToast('Off-days calendar saved', 'success');
+    renderGanttBody();
+  } else {
+    showToast('Save failed: ' + (res.error||''), 'error');
+  }
+}
 </script>
 <script>
 /* =====================================================================
@@ -2337,6 +2823,19 @@ function confirmDeleteEvent(eventId) {
 /* =====================================================================
    BASELINES VIEW
    ===================================================================== */
+function confirmUnlockBaseline(baselineName) {
+  confirmDialog(`Unlock baseline "<b>${baselineName}</b>"? Once unlocked, its dates can be edited again, and the change will be recorded in the audit log against your name. If you intend to re-freeze it later as a new revision, consider freezing a new baseline instead of editing this one.`, async () => {
+    const rows = STATE.baselines.filter(b => b.BaselineName === baselineName && b.ActivityID !== '__PROJECT__');
+    let unlocked = 0;
+    for (const b of rows) {
+      const res = await apiPost('unlockBaseline', { user: STATE.user, baselineId: b.BaselineID });
+      if (res.success) { b.IsActive = false; unlocked++; }
+      else { showToast(res.error || 'Could not unlock', 'error'); break; }
+    }
+    if (unlocked > 0) { showToast(`Unlocked ${unlocked} baseline entries`, 'success'); renderBaselines(document.querySelector('.view')); }
+  });
+}
+
 function renderBaselines(container) {
   const baselineNames = [...new Set(STATE.baselines.map(b => b.BaselineName))];
   container.innerHTML = `
@@ -2367,9 +2866,16 @@ function renderBaselineCard(name) {
     </tr>`;
   }).join('');
   const avgDrift = driftCount ? (totalDriftDays / driftCount).toFixed(1) : 0;
+  const isLocked = rows.some(b => b.IsActive === true || b.IsActive === 'TRUE');
   return `
     <div class="card">
-      <h3>${name} <span style="color:var(--text-faint);font-weight:400;">(avg drift: ${avgDrift} days)</span></h3>
+      <h3>${name}
+        <span style="color:var(--text-faint);font-weight:400;">(avg drift: ${avgDrift} days)</span>
+        ${isLocked
+          ? `<span class="badge" style="background:rgba(110,118,129,0.25);color:var(--text-dim);margin-left:8px;">🔒 Frozen</span>`
+          : `<span class="badge on-time" style="margin-left:8px;">Unlocked</span>`}
+        ${isLocked && canEditBaselines() ? `<button class="btn sm" style="float:right;" onclick="confirmUnlockBaseline('${name}')">Unlock this baseline</button>` : ''}
+      </h3>
       <div class="tbl-wrap"><table>
         <tr><th>Activity</th><th>Baseline dates</th><th>Current planned dates</th><th>Drift</th></tr>
         ${tableRows}
@@ -2424,6 +2930,62 @@ function permanentlyDeleteFromBin(activityId) {
     const res = await apiPost('deleteActivity', { user: STATE.user, activityId });
     if (res.success) { showToast('Permanently deleted', 'success'); renderRecycleBin(document.querySelector('.view')); }
   });
+}
+
+/* =====================================================================
+   ACTIVITY HISTORY — surfaces the AuditLog sheet inside the app, so at
+   177 projects you can spot-check "what happened here" without ever
+   opening the raw Google Sheet.
+   ===================================================================== */
+async function renderActivityHistory(container) {
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Activity history</h2>
+      <p style="color:var(--text-dim);font-size:12px;">
+        Every save, import, delete, and baseline change in this project, newest first —
+        who did it and when. Use this to check a contractor's or supervisor's recent
+        changes without opening the underlying Sheet.
+      </p>
+      <div class="spacer"></div>
+      <input type="search" id="historySearch" placeholder="Search by user or action…" oninput="renderHistoryTableBody()">
+      <select id="historyActionFilter" onchange="renderHistoryTableBody()"><option value="">All actions</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>When</th><th>User</th><th>Action</th><th>Type</th><th>Details</th></tr></thead>
+      <tbody id="historyTableBody"><tr><td colspan="5"><div class="empty-state">Loading…</div></td></tr></tbody>
+    </table></div>
+  `;
+  const res = await apiGet('getAuditLog');
+  window._auditLogRows = res.success ? res.data : [];
+  const actions = [...new Set(window._auditLogRows.map(r => r.Action).filter(Boolean))].sort();
+  document.getElementById('historyActionFilter').innerHTML =
+    `<option value="">All actions</option>` + actions.map(a => `<option value="${a}">${a}</option>`).join('');
+  renderHistoryTableBody();
+}
+function renderHistoryTableBody() {
+  const search = (document.getElementById('historySearch')?.value || '').toLowerCase();
+  const actionFilter = document.getElementById('historyActionFilter')?.value || '';
+  let rows = window._auditLogRows || [];
+  if (search) rows = rows.filter(r => (r.User||'').toLowerCase().includes(search) || (r.Action||'').toLowerCase().includes(search));
+  if (actionFilter) rows = rows.filter(r => r.Action === actionFilter);
+  const body = document.getElementById('historyTableBody');
+  if (rows.length === 0) { body.innerHTML = `<tr><td colspan="5"><div class="empty-state">No history yet, or none matching this search.</div></td></tr>`; return; }
+  const flaggedActions = { blockedBaselineEdit: 'rust', blockedBaselineUnlock: 'rust', delete: 'gold', softDelete: 'gold', unlockBaseline: 'purple' };
+  body.innerHTML = rows.slice(0, 300).map(r => {
+    let details = '';
+    try { const d = JSON.parse(r.Details || '{}'); details = Object.keys(d).length ? JSON.stringify(d).slice(0, 80) : ''; } catch(e){}
+    const isBlocked = r.Action === 'blockedBaselineEdit' || r.Action === 'blockedBaselineUnlock';
+    return `<tr ${isBlocked ? 'style="background:rgba(198,40,40,0.08);"' : ''}>
+      <td>${r.Timestamp ? new Date(r.Timestamp).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</td>
+      <td>${r.User || ''}</td>
+      <td>${isBlocked ? '🚫 ' : ''}${r.Action || ''}</td>
+      <td>${r.EntityType || ''}</td>
+      <td style="font-size:11px;color:var(--text-faint);">${details}</td>
+    </tr>`;
+  }).join('');
+  if (rows.length > 300) {
+    body.innerHTML += `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);">Showing the 300 most recent of ${rows.length} entries</td></tr>`;
+  }
 }
 
 function renderUsers(container) {
