@@ -38,22 +38,29 @@ input:focus,select:focus,textarea:focus{outline:1px solid var(--accent);}
 
 /* ===== TOP BAR ===== */
 #topbar{
-  height:52px;background:var(--panel);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 16px;gap:16px;position:sticky;top:0;z-index:200;
+  height:54px;background:linear-gradient(180deg,#181D24,#13171D);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:18px;position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 4px rgba(0,0,0,0.3);
 }
-#topbar .logo{font-weight:700;font-size:15px;letter-spacing:0.3px;color:#fff;white-space:nowrap;}
-#topbar .logo span{color:var(--accent);}
-#tabs{display:flex;gap:2px;flex:1;overflow-x:auto;}
+#topbar .logo{font-weight:700;font-size:15px;letter-spacing:0.4px;color:#fff;white-space:nowrap;}
+#topbar .logo span{
+  background:linear-gradient(90deg,#5B98F7,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#tabs{display:flex;gap:3px;flex:1;overflow-x:auto;}
 .tab-btn{
-  background:none;border:none;color:var(--text-dim);padding:8px 14px;border-radius:6px;
-  font-size:13px;white-space:nowrap;transition:background 0.15s,color 0.15s;
+  background:none;border:1px solid transparent;color:var(--text-dim);padding:8px 15px;border-radius:7px;
+  font-size:13px;font-weight:500;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s;
 }
-.tab-btn:hover{background:var(--panel2);color:var(--text);}
-.tab-btn.active{background:var(--accent-dim);color:#fff;font-weight:600;}
-#apiStatus{font-size:11px;padding:4px 10px;border-radius:10px;white-space:nowrap;}
-#apiStatus.ok{background:rgba(46,125,50,0.2);color:#81C784;}
-#apiStatus.err{background:rgba(198,40,40,0.2);color:#E57373;}
-#apiStatus.pending{background:rgba(230,81,0,0.2);color:#FFB74D;}
+.tab-btn:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.tab-btn.active{
+  background:linear-gradient(180deg,rgba(59,130,246,0.22),rgba(59,130,246,0.12));
+  border-color:rgba(59,130,246,0.35);color:#fff;font-weight:600;
+}
+#apiStatus{font-size:11px;padding:4px 11px;border-radius:11px;white-space:nowrap;font-weight:600;letter-spacing:0.2px;}
+#apiStatus.ok{background:rgba(46,125,50,0.18);color:#81C784;border:1px solid rgba(129,199,132,0.25);}
+#apiStatus.err{background:rgba(198,40,40,0.18);color:#E57373;border:1px solid rgba(229,115,115,0.25);}
+#apiStatus.pending{background:rgba(230,81,0,0.18);color:#FFB74D;border:1px solid rgba(255,183,77,0.25);}
 #userBadge{font-size:12px;color:var(--text-dim);white-space:nowrap;}
 
 /* ===== VIEWS ===== */
@@ -96,21 +103,50 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .tbl-wrap{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px;}
 
 .btn{
-  background:var(--panel2);border:1px solid var(--border);color:var(--text);
-  padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;
-  display:inline-flex;align-items:center;gap:6px;transition:background 0.15s;
+  background:linear-gradient(180deg,#1F2730,#1A2129);
+  border:1px solid var(--border);color:var(--text);
+  padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;
+  letter-spacing:0.1px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background 0.15s,border-color 0.15s,box-shadow 0.15s,transform 0.06s;
+  box-shadow:0 1px 2px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.btn:hover{background:#262C36;}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-.btn.primary:hover{background:#2563EB;}
-.btn.danger{background:var(--red);border-color:var(--red);color:#fff;}
-.btn.danger:hover{background:#B71C1C;}
-.btn.sm{padding:4px 10px;font-size:12px;}
-.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn:hover{background:linear-gradient(180deg,#262F3A,#212933);border-color:#3D4654;}
+.btn:active{transform:translateY(0.5px);box-shadow:0 1px 1px rgba(0,0,0,0.4);}
+.btn.primary{
+  background:linear-gradient(180deg,#4A8DF5,#3B82F6);border-color:#5B96F7;color:#fff;
+  box-shadow:0 1px 3px rgba(59,130,246,0.35),inset 0 1px 0 rgba(255,255,255,0.18);
+  font-weight:600;
+}
+.btn.primary:hover{background:linear-gradient(180deg,#5B98F7,#2563EB);}
+.btn.danger{
+  background:linear-gradient(180deg,#D32F2F,#C62828);border-color:#E04848;color:#fff;
+  box-shadow:0 1px 3px rgba(198,40,40,0.3),inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.btn.danger:hover{background:linear-gradient(180deg,#DC3636,#B71C1C);}
+.btn.sm{padding:5px 11px;font-size:12px;border-radius:6px;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;box-shadow:none;}
 
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
 .toolbar .spacer{flex:1;}
 .toolbar input[type=search],.toolbar input[type=text]{min-width:200px;}
+
+/* refined inputs/selects to match the elevated button language */
+input,select,textarea{
+  background:linear-gradient(180deg,#181D24,#161B22);
+  border:1px solid var(--border);border-radius:6px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--accent);box-shadow:inset 0 1px 2px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);
+}
+
+/* card and stat-card depth, so panels feel like distinct elevated
+   surfaces rather than flat color blocks */
+.card{box-shadow:0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.02);}
+.stat-card{box-shadow:0 1px 3px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.02);transition:transform 0.15s,box-shadow 0.15s;}
+.stat-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04);}
 
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:1000;
@@ -285,6 +321,7 @@ body.contractor-mobile-view .mobile-search-toolbar{display:flex !important;}
     <button class="tab-btn active" data-view="dashboard">Dashboard</button>
     <button class="tab-btn" data-view="boq">BOQ</button>
     <button class="tab-btn" data-view="activities">Activities &amp; Gantt</button>
+    <button class="tab-btn" data-view="chunks">Progress chunks</button>
     <button class="tab-btn" data-view="events">Events &amp; milestones</button>
     <button class="tab-btn" data-view="baselines">Baselines</button>
     <button class="tab-btn" data-view="recyclebin">Recycle bin</button>
@@ -339,6 +376,7 @@ let STATE = {
   users: [],
   colors: [],
   preAward: [],
+  progressChunks: [],
   currentView: 'dashboard',
   ganttZoom: 'week', // day | week | month
   ganttColorFilter: null,
@@ -402,6 +440,7 @@ async function loadAll() {
     STATE.users = res.data.users || [];
     STATE.colors = res.data.colors || [];
     STATE.preAward = res.data.preAward || [];
+    STATE.progressChunks = res.data.progressChunks || [];
     STATE.accessLevel = res.accessLevel || 'Owner';
     STATE.readOnly = (STATE.accessLevel === 'SupervisorView');
     STATE.apiReady = true;
@@ -462,6 +501,7 @@ const NAV_ITEMS = [
   { view: 'dashboard', label: 'Dashboard', icon: '📊' },
   { view: 'boq', label: 'BOQ', icon: '📋' },
   { view: 'activities', label: 'Activities', icon: '📅' },
+  { view: 'chunks', label: 'Progress chunks', icon: '🧩' },
   { view: 'events', label: 'Events', icon: '🚧' },
   { view: 'baselines', label: 'Baselines', icon: '📌' },
   { view: 'history', label: 'History', icon: '🕘' },
@@ -505,6 +545,7 @@ function renderCurrentView() {
     case 'dashboard': renderDashboard(view); break;
     case 'boq': renderBOQ(view); break;
     case 'activities': renderActivitiesAndGantt(view); break;
+    case 'chunks': renderProgressChunks(view); break;
     case 'events': renderEvents(view); break;
     case 'baselines': renderBaselines(view); break;
     case 'recyclebin': renderRecycleBin(view); break;
@@ -673,8 +714,73 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 /* =====================================================================
-   DASHBOARD VIEW
+   UNIFIED WEIGHTED PROGRESS ENGINE
+   Combines two kinds of contributors into one 0-100 overall % :
+     1. BOQ-linked activities — weighted automatically by their linked
+        BOQ Amount (the money), so bigger-value work counts for more
+        without you setting anything manually.
+     2. Judgmental progress chunks — weighted by whatever % YOU assign
+        per floor+section (e.g. "Grey Structure GF" = 8%), with a
+        free-text note and a single judgmental % complete per chunk.
+   A project can use either, both, or neither — whatever isn't present
+   simply contributes nothing to the pool, and the weight breakdown
+   panel always shows you exactly how the 100% is currently split.
    ===================================================================== */
+function getBOQLinkedActivityWeights() {
+  // Returns [{ activity, weight }] where weight = sum of linked BOQ Amounts
+  // for that activity. An activity with no linked BOQ items has weight 0
+  // and contributes nothing to this pool (it still shows on the Gantt,
+  // just doesn't count toward the BOQ-driven slice of overall progress).
+  const acts = STATE.activities.filter(a => a.Type === 'task');
+  return acts.map(a => {
+    const linkedBOQ = STATE.boq.filter(b => (b.LinkedActivityIDs || '').split(',').includes(a.ActivityID));
+    const weight = linkedBOQ.reduce((s, b) => s + (Number(b.Amount) || 0), 0);
+    return { activity: a, weight };
+  }).filter(x => x.weight > 0);
+}
+
+function getWeightBreakdown() {
+  const boqWeighted = getBOQLinkedActivityWeights();
+  const boqWeightTotal = boqWeighted.reduce((s, x) => s + x.weight, 0);
+  const chunkWeightTotal = STATE.progressChunks.reduce((s, c) => s + (Number(c.WeightPercent) || 0), 0);
+  // BOQ activities are weighted by money; chunks are weighted by the %
+  // you assigned directly. To combine them into one 0-100 pool, BOQ's
+  // share of the pool is "whatever isn't claimed by chunks" — i.e. if
+  // chunks total 38%, BOQ-linked activities collectively represent the
+  // other 62%, distributed among themselves proportional to their amounts.
+  const boqPoolShare = Math.max(0, 100 - chunkWeightTotal);
+  return { boqWeighted, boqWeightTotal, chunkWeightTotal, boqPoolShare };
+}
+
+function calculateOverallProgress() {
+  const { boqWeighted, boqWeightTotal, chunkWeightTotal, boqPoolShare } = getWeightBreakdown();
+  let overall = 0;
+
+  if (boqWeightTotal > 0 && boqPoolShare > 0) {
+    const boqContribution = boqWeighted.reduce((sum, x) => {
+      const pctOfPool = (x.weight / boqWeightTotal) * boqPoolShare;
+      return sum + (pctOfPool * (Number(x.activity.PercentComplete) || 0) / 100);
+    }, 0);
+    overall += boqContribution;
+  }
+
+  STATE.progressChunks.forEach(c => {
+    overall += (Number(c.WeightPercent) || 0) * (Number(c.PercentComplete) || 0) / 100;
+  });
+
+  // Fallback: neither BOQ-linking nor chunks are set up at all — use
+  // the simple equal-weighted average across all activities, exactly
+  // as before, so a brand-new project with no setup still shows a
+  // sensible number instead of zero.
+  if (boqWeightTotal === 0 && chunkWeightTotal === 0) {
+    const acts = STATE.activities.filter(a => a.Type === 'task');
+    if (acts.length === 0) return 0;
+    return +(acts.reduce((s, a) => s + (Number(a.PercentComplete) || 0), 0) / acts.length).toFixed(1);
+  }
+
+  return +overall.toFixed(1);
+}
+
 function renderDashboard(container) {
   const acts = STATE.activities.filter(a => a.Type === 'task');
   const total = acts.length;
@@ -690,10 +796,8 @@ function renderDashboard(container) {
     else if (st.cls === 'on-time') onTime++;
   });
 
-  const overallPct = total > 0
-    ? (acts.reduce((sum, a) => sum + (Number(a.PercentComplete) || 0) * (Number(a.WeightFactor) || 1), 0) /
-       acts.reduce((sum, a) => sum + (Number(a.WeightFactor) || 1), 0)).toFixed(1)
-    : 0;
+  const overallPct = calculateOverallProgress();
+  const weightBreakdown = getWeightBreakdown();
 
   const boqTotal = STATE.boq.reduce((s, b) => s + (Number(b.Amount) || 0), 0);
   const info = STATE.projectInfo;
@@ -807,6 +911,13 @@ function renderDashboard(container) {
         <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Quality points highlighted:</b> ${info.QualityPointsHighlighted || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
         <p style="color:var(--text-dim);"><b style="color:var(--text)">Punch list summary:</b> ${info.PunchListSummary || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
       </div>
+    </div>
+
+    <div class="card">
+      <h3>How is overall progress weighted?
+        <button class="btn sm" style="float:right;" onclick="setActiveView('chunks')">Manage progress chunks</button>
+      </h3>
+      ${renderWeightBreakdownPanel(weightBreakdown)}
     </div>
 
     <div class="card">
@@ -959,6 +1070,38 @@ function renderDashboardCharts(acts) {
       }));
     }
   }
+}
+
+function renderWeightBreakdownPanel(breakdown) {
+  const { boqWeighted, boqWeightTotal, chunkWeightTotal, boqPoolShare } = breakdown;
+  const totalAssigned = chunkWeightTotal + (boqWeightTotal > 0 ? boqPoolShare : 0);
+  const isComplete = boqWeightTotal > 0 || chunkWeightTotal > 0;
+  let warning = '';
+  if (chunkWeightTotal > 100) {
+    warning = `<div class="warn-box" style="margin-top:10px;"><h4>⚠ Chunk weights exceed 100%</h4><p>Your progress chunks currently total ${chunkWeightTotal}%, which is more than the whole project. Edit your chunks so they sum to 100% or less.</p></div>`;
+  } else if (!isComplete) {
+    warning = `<div class="warn-box" style="margin-top:10px;"><h4>No weighting set up yet</h4><p>Link BOQ items to activities, or add progress chunks, to get a properly weighted overall %. Until then, overall progress is a simple average of all activities.</p></div>`;
+  }
+  return `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="flex:1;min-width:160px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">BOQ-linked activities</div>
+        <div style="font-size:22px;font-weight:700;color:#64B5F6;">${boqWeightTotal > 0 ? boqPoolShare.toFixed(1) : 0}%</div>
+        <div style="font-size:11px;color:var(--text-faint);">${boqWeighted.length} activities, weighted by BOQ amount</div>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Judgmental chunks</div>
+        <div style="font-size:22px;font-weight:700;color:#FFB74D;">${chunkWeightTotal.toFixed(1)}%</div>
+        <div style="font-size:11px;color:var(--text-faint);">${STATE.progressChunks.length} chunks, weighted manually</div>
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Total weight pool</div>
+        <div style="font-size:22px;font-weight:700;color:${Math.abs(totalAssigned-100)<0.5 || !isComplete ?'#81C784':'#E57373'};">${isComplete ? totalAssigned.toFixed(1) : 100}%</div>
+        <div style="font-size:11px;color:var(--text-faint);">should equal 100%</div>
+      </div>
+    </div>
+    ${warning}
+  `;
 }
 
 function renderProjectDatesTable() {
@@ -1174,7 +1317,10 @@ function renderBOQ(container) {
         <thead><tr>
           <th><input type="checkbox" id="selectAllBOQ" onchange="toggleSelectAllBOQ(this.checked)"></th>
           <th>Serial</th><th>Group</th><th>Description</th><th>Unit</th><th>Nos</th>
-          <th>Quantity</th><th>Rate</th><th>Amount</th><th>Linked activities</th><th></th>
+          <th>Quantity</th><th>Rate</th><th>Amount</th>
+          <th title="Auto-calculated from linked activity % complete">Earned qty</th>
+          <th title="Auto-calculated from linked activity % complete">Earned value</th>
+          <th>Linked activities</th><th></th>
         </tr></thead>
         <tbody id="boqTableBody"></tbody>
       </table>
@@ -1267,7 +1413,7 @@ function renderBOQTableBody() {
 
   const body = document.getElementById('boqTableBody');
   if (items.length === 0) {
-    body.innerHTML = `<tr><td colspan="11"><div class="empty-state">No BOQ items found. Upload an Excel file, paste from clipboard, or add items manually.</div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="13"><div class="empty-state">No BOQ items found. Upload an Excel file, paste from clipboard, or add items manually.</div></td></tr>`;
     return;
   }
   body.innerHTML = items.map(b => {
@@ -1291,6 +1437,8 @@ function renderBOQTableBody() {
         <td>${b.Quantity || ''}</td>
         <td>${Number(b.Rate||0).toLocaleString()}</td>
         <td>${Number(b.Amount||0).toLocaleString()}</td>
+        <td style="color:#81C784;">${b.EarnedQuantity !== undefined && b.EarnedQuantity !== '' ? Number(b.EarnedQuantity).toLocaleString() : '<span style="color:var(--text-faint)">—</span>'}</td>
+        <td style="color:#81C784;">${b.EarnedAmount !== undefined && b.EarnedAmount !== '' ? Number(b.EarnedAmount).toLocaleString() : '<span style="color:var(--text-faint)">—</span>'}</td>
         <td>${linkedNames.length ? linkedNames.map(n=>`<span class="chip">${n}</span>`).join('') : '<span style="color:var(--text-faint)">none</span>'}
             <button class="btn sm" onclick="openLinkBOQModal('${b.BOQItemID}')">link</button>
         </td>
@@ -2717,6 +2865,118 @@ async function saveOffDaysConfig() {
 /* =====================================================================
    EVENTS & MILESTONES VIEW
    ===================================================================== */
+/* =====================================================================
+   PROGRESS CHUNKS VIEW
+   Judgmental, weighted progress for projects without (or alongside)
+   BOQ linking — grouped by floor/zone, each chunk carries its own
+   weight % and a free-text site note plus a single judgmental %.
+   ===================================================================== */
+function renderProgressChunks(container) {
+  const breakdown = getWeightBreakdown();
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Progress chunks</h2>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="openChunkModal()">+ Add chunk</button>
+    </div>
+    <div class="card">
+      <h3>Weight pool</h3>
+      ${renderWeightBreakdownPanel(breakdown)}
+    </div>
+    <div id="chunksByFloor"></div>
+  `;
+  renderChunksByFloor();
+}
+
+function renderChunksByFloor() {
+  const container = document.getElementById('chunksByFloor');
+  if (!container) return;
+  if (STATE.progressChunks.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🧩</div>No progress chunks yet. Add one per floor and section — e.g. "Grey Structure, Ground Floor" — and give it a weight %.</div>`;
+    return;
+  }
+  const floors = [...new Set(STATE.progressChunks.map(c => c.FloorOrZone || '(No floor set)'))];
+  container.innerHTML = floors.map(floor => {
+    const chunks = STATE.progressChunks.filter(c => (c.FloorOrZone || '(No floor set)') === floor);
+    const floorWeightTotal = chunks.reduce((s, c) => s + (Number(c.WeightPercent) || 0), 0);
+    return `
+      <div class="card">
+        <h3>${floor} <span style="color:var(--text-faint);font-weight:400;">(${floorWeightTotal.toFixed(1)}% of total project)</span></h3>
+        <div class="tbl-wrap"><table>
+          <tr><th>Section</th><th>Weight %</th><th>% Complete</th><th>Site note</th><th></th></tr>
+          ${chunks.map(c => `
+            <tr>
+              <td><b>${c.SectionName||''}</b></td>
+              <td style="width:90px;"><input type="number" min="0" max="100" step="0.1" value="${c.WeightPercent||0}"
+                onchange="quickUpdateChunk('${c.ChunkID}','WeightPercent',this.value)" style="width:70px;"></td>
+              <td style="width:90px;"><input type="number" min="0" max="100" value="${c.PercentComplete||0}"
+                onchange="quickUpdateChunk('${c.ChunkID}','PercentComplete',this.value)" style="width:70px;"></td>
+              <td style="max-width:280px;">
+                <input type="text" value="${(c.Notes||'').replace(/"/g,'&quot;')}" placeholder="e.g. conduit work complete"
+                  onchange="quickUpdateChunk('${c.ChunkID}','Notes',this.value)" style="width:100%;">
+              </td>
+              <td><button class="btn sm danger" onclick="confirmDeleteChunk('${c.ChunkID}')">delete</button></td>
+            </tr>`).join('')}
+        </table></div>
+      </div>`;
+  }).join('');
+}
+
+function openChunkModal(existingId) {
+  const c = existingId ? STATE.progressChunks.find(x => x.ChunkID === existingId) : {};
+  const existingFloors = [...new Set(STATE.progressChunks.map(x => x.FloorOrZone).filter(Boolean))];
+  openModal(`
+    <h2>${existingId ? 'Edit' : 'Add'} progress chunk</h2>
+    <div class="field">
+      <label>Floor / zone</label>
+      <input id="chunkFloor" list="existingFloorsList" value="${c.FloorOrZone||''}" placeholder="e.g. Ground Floor, 1st Floor, Basement">
+      <datalist id="existingFloorsList">${existingFloors.map(f=>`<option value="${f}">`).join('')}</datalist>
+    </div>
+    <div class="field"><label>Section name</label><input id="chunkSection" value="${c.SectionName||''}" placeholder="e.g. Grey Structure, MEP, Finishes"></div>
+    <div class="grid grid-2">
+      <div class="field"><label>Weight % (of total project)</label><input type="number" min="0" max="100" step="0.1" id="chunkWeight" value="${c.WeightPercent||''}"></div>
+      <div class="field"><label>% Complete (judgmental)</label><input type="number" min="0" max="100" id="chunkPct" value="${c.PercentComplete||0}"></div>
+    </div>
+    <div class="field"><label>Site note</label><input id="chunkNotes" value="${(c.Notes||'').replace(/"/g,'&quot;')}" placeholder="e.g. conduit work complete, fixtures pending"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveChunkModal('${existingId||''}'))">Save</button>
+    </div>
+  `);
+}
+async function saveChunkModal(existingId) {
+  const chunk = {
+    ChunkID: existingId || undefined,
+    FloorOrZone: document.getElementById('chunkFloor').value,
+    SectionName: document.getElementById('chunkSection').value,
+    WeightPercent: document.getElementById('chunkWeight').value,
+    PercentComplete: document.getElementById('chunkPct').value,
+    Notes: document.getElementById('chunkNotes').value,
+    ChunkName: `${document.getElementById('chunkFloor').value} — ${document.getElementById('chunkSection').value}`,
+  };
+  const res = await apiPost('saveProgressChunk', { user: STATE.user, chunk });
+  closeModal();
+  if (res.success) { showToast('Progress chunk saved', 'success'); await loadAll(); }
+  else showToast('Save failed: ' + res.error, 'error');
+}
+async function quickUpdateChunk(chunkId, field, value) {
+  const chunk = STATE.progressChunks.find(c => c.ChunkID === chunkId);
+  if (!chunk) return;
+  chunk[field] = value;
+  const res = await apiPost('saveProgressChunk', { user: STATE.user, chunk });
+  if (res.success) { showToast('Updated', 'success'); renderChunksByFloor(); }
+}
+function confirmDeleteChunk(chunkId) {
+  confirmDialog('Delete this progress chunk? This cannot be undone.', async () => {
+    const res = await apiPost('deleteProgressChunk', { chunkId });
+    if (res.success) {
+      STATE.progressChunks = STATE.progressChunks.filter(c => c.ChunkID !== chunkId);
+      showToast('Chunk deleted', 'success');
+      renderChunksByFloor();
+    }
+  });
+}
+
 function renderEvents(container) {
   container.innerHTML = `
     <div class="toolbar">
@@ -3014,9 +3274,32 @@ function renderUsers(container) {
       </table>
       <button class="btn sm" onclick="loadAll()" style="margin-top:10px;">Refresh data from sheet</button>
     </div>
+    <div class="card">
+      <h3>Project data structure</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">
+        Projects created before BOQ-driven progress and progress chunks existed need a one-time
+        upgrade to add the new columns/sheet. Safe to run any time — it only adds what's missing,
+        never touches existing data. Newly created projects already have these by default.
+      </p>
+      <button class="btn" onclick="guardedClick(event, () => runSchemaUpgrade())">Check &amp; upgrade this project's structure</button>
+      <div id="schemaUpgradeResult" style="margin-top:10px;font-size:12px;color:var(--text-dim);"></div>
+    </div>
   `;
   renderUsersList();
   renderColorsList();
+}
+async function runSchemaUpgrade() {
+  const res = await apiPost('upgradeProjectSchema', { user: STATE.user });
+  const el = document.getElementById('schemaUpgradeResult');
+  if (res.success) {
+    el.textContent = res.added.length > 0
+      ? `Added: ${res.added.join(', ')}. Reloading…`
+      : `Already up to date — nothing needed to be added.`;
+    showToast('Project structure checked', 'success');
+    if (res.added.length > 0) await loadAll();
+  } else {
+    el.textContent = 'Upgrade failed: ' + res.error;
+  }
 }
 function renderUsersList() {
   const el = document.getElementById('usersList');
