@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HS Project Planner</title>
+<link rel="manifest" href="manifest-project.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0F1419">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HS Planner">
 <style>
 :root{
   --bg:#0F1419; --panel:#161B22; --panel2:#1C2128; --border:#2D333B;
@@ -89,6 +96,57 @@ input:focus,select:focus,textarea:focus{outline:1px solid var(--accent);}
 .stat-card.red .value{color:#E57373;}
 .stat-card.blue .value{color:#64B5F6;}
 .stat-card.orange .value{color:#FFB74D;}
+.stat-card.hero-stat{
+  flex:1.4;min-width:220px;background:linear-gradient(135deg,#1A2433,#161B22);
+  border-color:rgba(59,130,246,0.25);
+}
+.stat-card.hero-stat .value{font-size:36px;background:linear-gradient(90deg,#fff,#A8C8F8);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.progress-track{height:7px;background:rgba(255,255,255,0.07);border-radius:4px;margin-top:10px;overflow:hidden;}
+.progress-fill-bar{height:100%;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:4px;transition:width 0.4s ease;}
+
+/* ===== MODE SWITCHER ===== */
+.mode-switch{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+.mode-switch-btn{
+  background:none;border:none;color:var(--text-dim);padding:6px 13px;border-radius:6px;
+  font-size:12px;font-weight:600;cursor:pointer;transition:background 0.15s,color 0.15s;
+}
+.mode-switch-btn.active{background:linear-gradient(180deg,#4A8DF5,#3B82F6);color:#fff;box-shadow:0 1px 3px rgba(59,130,246,0.4);}
+.mode-pill{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-dim);
+  background:var(--panel2);border:1px solid var(--border);padding:6px 13px;border-radius:8px;
+}
+.mode-pill.breakup{color:#FFB74D;}
+.mode-pill.boq{color:#64B5F6;}
+
+.billing-cycle-card{margin-bottom:14px;}
+.billing-steps-row{display:flex;align-items:stretch;gap:0;overflow-x:auto;margin-top:10px;}
+.billing-step{
+  flex:1;min-width:130px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;text-align:center;
+}
+.billing-step-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.2px;margin-bottom:6px;min-height:26px;}
+.billing-step-date{font-size:13px;font-weight:600;color:var(--text);}
+.billing-step-days{font-size:10px;color:#64B5F6;margin-top:3px;min-height:14px;}
+.billing-step-arrow{display:flex;align-items:center;justify-content:center;padding:0 6px;color:var(--text-faint);font-size:14px;flex-shrink:0;}
+
+.closure-steps-row{display:flex;align-items:center;margin:10px 0;}
+.closure-step{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;}
+.closure-step-dot{
+  width:28px;height:28px;border-radius:50%;background:var(--panel2);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text-faint);
+}
+.closure-step.reached .closure-step-dot{background:#2E7D32;border-color:#2E7D32;color:#fff;}
+.closure-step-label{font-size:10px;color:var(--text-dim);text-align:center;margin-top:6px;max-width:90px;}
+.closure-step.reached .closure-step-label{color:var(--text);font-weight:600;}
+.closure-step-date{font-size:9px;color:var(--text-faint);margin-top:2px;}
+.closure-step-line{flex:0.5;height:2px;background:var(--border);margin-top:-20px;}
+
+.warn-box{
+  background:rgba(255,183,77,0.1);border:1px solid rgba(255,183,77,0.3);border-radius:8px;
+  padding:12px 16px;
+}
+.warn-box h4{font-size:13px;color:#FFB74D;margin-bottom:6px;}
+.warn-box p{font-size:12px;color:var(--text-dim);margin:0;}
 
 .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
 .badge.on-time{background:rgba(46,125,50,0.2);color:#81C784;}
@@ -318,15 +376,16 @@ body.contractor-mobile-view .mobile-search-toolbar{display:flex !important;}
 <div id="topbar">
   <div class="logo">HS <span>Project Planner</span></div>
   <div id="tabs">
-    <button class="tab-btn active" data-view="dashboard">Dashboard</button>
-    <button class="tab-btn" data-view="boq">BOQ</button>
-    <button class="tab-btn" data-view="activities">Activities &amp; Gantt</button>
-    <button class="tab-btn" data-view="chunks">Progress chunks</button>
-    <button class="tab-btn" data-view="events">Events &amp; milestones</button>
-    <button class="tab-btn" data-view="baselines">Baselines</button>
-    <button class="tab-btn" data-view="recyclebin">Recycle bin</button>
-    <button class="tab-btn" data-view="history">Activity history</button>
-    <button class="tab-btn" data-view="users">Users &amp; setup</button>
+    <button class="tab-btn active" data-view="dashboard" data-modes="boq,breakup">Dashboard</button>
+    <button class="tab-btn" data-view="boq" data-modes="boq">BOQ</button>
+    <button class="tab-btn" data-view="activities" data-modes="boq">Activities &amp; Gantt</button>
+    <button class="tab-btn" data-view="chunks" data-modes="boq,breakup">Major Breakup</button>
+    <button class="tab-btn" data-view="billing" data-modes="boq,breakup">Billing Cycles</button>
+    <button class="tab-btn" data-view="events" data-modes="boq,breakup">Events &amp; milestones</button>
+    <button class="tab-btn" data-view="baselines" data-modes="boq">Baselines</button>
+    <button class="tab-btn" data-view="recyclebin" data-modes="boq">Recycle bin</button>
+    <button class="tab-btn" data-view="history" data-modes="boq,breakup">Activity history</button>
+    <button class="tab-btn" data-view="users" data-modes="boq,breakup">Users &amp; setup</button>
   </div>
   <span id="apiStatus" class="pending">Connecting…</span>
   <span id="userBadge">Not signed in</span>
@@ -360,7 +419,7 @@ body.contractor-mobile-view .mobile-search-toolbar{display:flex !important;}
    type it in here.
    ===================================================================== */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbziFrnPjxjdx9JzFtrGvyvQ4lC06mlEFN3QFXIPJ4-iiZrZNiWXceSLHtFsgSKOKKKs8g/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzxDSHMd_XCgen5LaC4hI2S-KFPtBDBzfw6Rrx07v0BlaXIzu1x5fzB9cr8mnF3yeuW/exec',
   DAY_WIDTH: { day: 24, week: 10, month: 4 },
   PROJECT_KEY: new URLSearchParams(window.location.search).get('key') || '',
 };
@@ -377,6 +436,7 @@ let STATE = {
   colors: [],
   preAward: [],
   progressChunks: [],
+  billingCycles: [],
   currentView: 'dashboard',
   ganttZoom: 'week', // day | week | month
   ganttColorFilter: null,
@@ -441,6 +501,7 @@ async function loadAll() {
     STATE.colors = res.data.colors || [];
     STATE.preAward = res.data.preAward || [];
     STATE.progressChunks = res.data.progressChunks || [];
+    STATE.billingCycles = res.data.billingCycles || [];
     STATE.accessLevel = res.accessLevel || 'Owner';
     STATE.readOnly = (STATE.accessLevel === 'SupervisorView');
     STATE.apiReady = true;
@@ -498,16 +559,30 @@ function ensureUser() {
 
 /* ---------------- TAB NAVIGATION (desktop tabs + mobile bottom bar) ---------------- */
 const NAV_ITEMS = [
-  { view: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { view: 'boq', label: 'BOQ', icon: '📋' },
-  { view: 'activities', label: 'Activities', icon: '📅' },
-  { view: 'chunks', label: 'Progress chunks', icon: '🧩' },
-  { view: 'events', label: 'Events', icon: '🚧' },
-  { view: 'baselines', label: 'Baselines', icon: '📌' },
-  { view: 'history', label: 'History', icon: '🕘' },
-  { view: 'recyclebin', label: 'Recycle', icon: '🗑' },
-  { view: 'users', label: 'Setup', icon: '⚙' },
+  { view: 'dashboard', label: 'Dashboard', icon: '📊', modes: ['boq','breakup'] },
+  { view: 'boq', label: 'BOQ', icon: '📋', modes: ['boq'] },
+  { view: 'activities', label: 'Activities', icon: '📅', modes: ['boq'] },
+  { view: 'chunks', label: 'Major Breakup', icon: '🧩', modes: ['boq','breakup'] },
+  { view: 'billing', label: 'Billing', icon: '💰', modes: ['boq','breakup'] },
+  { view: 'events', label: 'Events', icon: '🚧', modes: ['boq','breakup'] },
+  { view: 'baselines', label: 'Baselines', icon: '📌', modes: ['boq'] },
+  { view: 'history', label: 'History', icon: '🕘', modes: ['boq','breakup'] },
+  { view: 'recyclebin', label: 'Recycle', icon: '🗑', modes: ['boq'] },
+  { view: 'users', label: 'Setup', icon: '⚙', modes: ['boq','breakup'] },
 ];
+
+function applyModeVisibilityToNav() {
+  const mode = getProgressMode();
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const modes = (btn.dataset.modes || '').split(',');
+    btn.style.display = modes.includes(mode) ? '' : 'none';
+  });
+  // if the currently active view isn't valid in this mode, fall back to dashboard
+  const currentBtn = document.querySelector(`.tab-btn[data-view="${STATE.currentView}"]`);
+  if (currentBtn && currentBtn.style.display === 'none') {
+    STATE.currentView = 'dashboard';
+  }
+}
 
 function setActiveView(view) {
   STATE.currentView = view;
@@ -523,7 +598,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 function renderMobileTabBar() {
   const bar = document.getElementById('mobileTabBar');
   if (!bar) return;
-  bar.innerHTML = NAV_ITEMS.map(item => `
+  const mode = getProgressMode();
+  const items = NAV_ITEMS.filter(item => item.modes.includes(mode));
+  bar.innerHTML = items.map(item => `
     <button class="mtab ${STATE.currentView===item.view?'active':''}" data-view="${item.view}">
       <span class="micon">${item.icon}</span>
       <span>${item.label}</span>
@@ -535,6 +612,7 @@ function renderMobileTabBar() {
 }
 
 function renderCurrentView() {
+  applyModeVisibilityToNav();
   renderMobileTabBar();
   const root = document.getElementById('root');
   root.innerHTML = '';
@@ -546,6 +624,7 @@ function renderCurrentView() {
     case 'boq': renderBOQ(view); break;
     case 'activities': renderActivitiesAndGantt(view); break;
     case 'chunks': renderProgressChunks(view); break;
+    case 'billing': renderBillingCycles(view); break;
     case 'events': renderEvents(view); break;
     case 'baselines': renderBaselines(view); break;
     case 'recyclebin': renderRecycleBin(view); break;
@@ -693,6 +772,12 @@ window.addEventListener('resize', () => {
   updateAccessLevelBadge();
 });
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   ensureUser();
   if (CONFIG.API_URL.indexOf('PASTE_YOUR') === 0) {
@@ -719,9 +804,9 @@ window.addEventListener('DOMContentLoaded', () => {
      1. BOQ-linked activities — weighted automatically by their linked
         BOQ Amount (the money), so bigger-value work counts for more
         without you setting anything manually.
-     2. Judgmental progress chunks — weighted by whatever % YOU assign
+     2. Project Major Breakup sections — weighted by whatever % YOU assign
         per floor+section (e.g. "Grey Structure GF" = 8%), with a
-        free-text note and a single judgmental % complete per chunk.
+        free-text note and a single site progress % per section.
    A project can use either, both, or neither — whatever isn't present
    simply contributes nothing to the pool, and the weight breakdown
    panel always shows you exactly how the 100% is currently split.
@@ -781,30 +866,148 @@ function calculateOverallProgress() {
   return +overall.toFixed(1);
 }
 
-function renderDashboard(container) {
-  const acts = STATE.activities.filter(a => a.Type === 'task');
-  const total = acts.length;
-  const completed = acts.filter(a => Number(a.PercentComplete) >= 100).length;
-  const inProgress = acts.filter(a => Number(a.PercentComplete) > 0 && Number(a.PercentComplete) < 100).length;
-  const notStarted = total - completed - inProgress;
+function getProgressMode() {
+  return STATE.projectInfo.ProgressMode || 'boq'; // 'boq' | 'breakup'
+}
+function canSwitchMode() {
+  return STATE.accessLevel === 'Owner' || STATE.accessLevel === 'SupervisorEdit';
+}
 
-  let delayed = 0, onTime = 0, ahead = 0;
-  acts.forEach(a => {
-    const st = getDelayStatus(a);
-    if (st.cls === 'delayed') delayed++;
-    else if (st.cls === 'ahead') ahead++;
-    else if (st.cls === 'on-time') onTime++;
+/* ---- Project closure stages ---- */
+const CLOSURE_STAGES = [
+  { key: '', label: 'Open' },
+  { key: 'SubstantialCompletion', label: 'Substantial Completion' },
+  { key: 'Complete', label: 'Complete' },
+  { key: 'MaintenanceStarted', label: 'Maintenance Started' },
+  { key: 'MaintenanceCompleted', label: 'Maintenance Completed' },
+];
+function getClosureStage() {
+  return STATE.projectInfo.ClosureStage || '';
+}
+function isProjectFrozenClientSide() {
+  const stage = getClosureStage();
+  return stage === 'Complete' || stage === 'MaintenanceStarted' || stage === 'MaintenanceCompleted';
+}
+function canAdvanceClosure() {
+  return STATE.accessLevel === 'Owner' || STATE.accessLevel === 'SupervisorEdit';
+}
+
+function renderClosurePanel() {
+  const stage = getClosureStage();
+  const stageIdx = CLOSURE_STAGES.findIndex(s => s.key === stage);
+  const frozen = isProjectFrozenClientSide();
+  const nextStage = CLOSURE_STAGES[stageIdx + 1];
+
+  const stepsHtml = CLOSURE_STAGES.slice(1).map((s, i) => {
+    const reached = stageIdx >= i + 1;
+    const dateField = { SubstantialCompletion: 'SubstantialCompletionDate', Complete: 'CompletionDate', MaintenanceStarted: 'MaintenanceStartedDate', MaintenanceCompleted: 'MaintenanceCompletedDate' }[s.key];
+    const date = STATE.projectInfo[dateField];
+    return `
+      <div class="closure-step ${reached ? 'reached' : ''}">
+        <div class="closure-step-dot">${reached ? '✓' : i+1}</div>
+        <div class="closure-step-label">${s.label}</div>
+        ${date ? `<div class="closure-step-date">${fmtDate(date)}</div>` : ''}
+      </div>`;
+  }).join('<div class="closure-step-line"></div>');
+
+  return `
+    <div class="card">
+      <h3>Project closure status
+        ${frozen ? '<span class="badge delayed" style="margin-left:8px;">🔒 Data frozen</span>' : ''}
+      </h3>
+      <div class="closure-steps-row">${stepsHtml}</div>
+      ${frozen ? `<p style="color:var(--text-dim);font-size:12px;margin-top:12px;">
+          This project's core data (activities, BOQ, links, baselines, progress sections) is frozen.
+          Billing cycle entries and maintenance dates can still be recorded by anyone.
+          ${STATE.accessLevel === 'Owner' ? '<button class="btn sm" style="margin-left:8px;" onclick="confirmUnfreezeProject()">Unfreeze for correction</button>' : ''}
+        </p>` : ''}
+      ${(!frozen || stage === 'MaintenanceStarted') && nextStage && canAdvanceClosure() ? `
+        <button class="btn primary sm" style="margin-top:10px;" onclick="openAdvanceClosureModal('${nextStage.key}')">
+          Mark as: ${nextStage.label}
+        </button>` : ''}
+      ${!canAdvanceClosure() && nextStage && (nextStage.key === 'MaintenanceStarted' || nextStage.key === 'MaintenanceCompleted') ? `
+        <button class="btn primary sm" style="margin-top:10px;" onclick="openAdvanceClosureModal('${nextStage.key}')">
+          Mark as: ${nextStage.label}
+        </button>` : ''}
+    </div>
+  `;
+}
+
+function openAdvanceClosureModal(stageKey) {
+  const stageLabel = CLOSURE_STAGES.find(s => s.key === stageKey)?.label || stageKey;
+  const warning = stageKey === 'Complete'
+    ? '<div class="warn-box" style="margin-bottom:14px;"><h4>⚠ This will freeze the project</h4><p>Activities, BOQ, links, baselines, and progress sections will lock for everyone except you. Billing and maintenance dates stay editable by anyone.</p></div>'
+    : '';
+  openModal(`
+    <h2>Mark as: ${stageLabel}</h2>
+    ${warning}
+    <div class="field"><label>Date</label><input type="date" id="closureDate" value="${todayISO()}"></div>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => confirmAdvanceClosure('${stageKey}'))">Confirm</button>
+    </div>
+  `);
+}
+async function confirmAdvanceClosure(stageKey) {
+  const date = document.getElementById('closureDate').value;
+  const res = await apiPost('setProjectClosureStage', { user: STATE.user, stage: stageKey, date });
+  closeModal();
+  if (res.success) {
+    showToast('Project marked: ' + (CLOSURE_STAGES.find(s=>s.key===stageKey)?.label||stageKey), 'success');
+    await loadAll();
+  } else {
+    showToast(res.error || 'Could not update closure stage', 'error');
+  }
+}
+function confirmUnfreezeProject() {
+  confirmDialog('Unfreeze this project for correction? This re-opens all core data for editing until you mark it Complete again. Use this only to fix a genuine mistake.', async () => {
+    const res = await apiPost('unfreezeProjectForCorrection', { user: STATE.user });
+    if (res.success) { showToast('Project unfrozen for correction', 'success'); await loadAll(); }
+    else showToast(res.error || 'Could not unfreeze', 'error');
   });
+}
 
-  const overallPct = calculateOverallProgress();
-  const weightBreakdown = getWeightBreakdown();
+function renderModeSwitcher() {
+  const mode = getProgressMode();
+  if (!canSwitchMode()) {
+    return `<span class="mode-pill ${mode}">${mode === 'breakup' ? '🧩 Major Breakup mode' : '📐 BOQ / Activity mode'}</span>`;
+  }
+  return `
+    <div class="mode-switch" role="tablist">
+      <button class="mode-switch-btn ${mode==='breakup'?'active':''}" onclick="guardedClick(event, () => switchProgressMode('breakup'))">🧩 Major Breakup</button>
+      <button class="mode-switch-btn ${mode==='boq'?'active':''}" onclick="guardedClick(event, () => switchProgressMode('boq'))">📐 BOQ / Activity</button>
+    </div>
+  `;
+}
+async function switchProgressMode(newMode) {
+  if (getProgressMode() === newMode) return;
+  const confirmMsg = newMode === 'breakup'
+    ? 'Switch this project to Major Breakup mode? The dashboard will simplify to show floor/section progress instead of BOQ and Gantt details. Nothing is deleted — you can switch back any time.'
+    : 'Switch this project to BOQ / Activity mode? The dashboard will show the full BOQ, Gantt, and activity tracking. Nothing is deleted — you can switch back any time.';
+  return new Promise(resolve => {
+    confirmDialog(confirmMsg, async () => {
+      const res = await apiPost('saveProjectInfo', { user: STATE.user, info: { ProgressMode: newMode } });
+      if (res.success) {
+        STATE.projectInfo.ProgressMode = newMode;
+        showToast('Switched to ' + (newMode === 'breakup' ? 'Major Breakup' : 'BOQ / Activity') + ' mode', 'success');
+        renderCurrentView();
+      } else {
+        showToast(res.error || 'Could not switch mode', 'error');
+      }
+      resolve();
+    });
+  });
+}
 
-  const boqTotal = STATE.boq.reduce((s, b) => s + (Number(b.Amount) || 0), 0);
+function renderDashboard(container) {
+  const mode = getProgressMode();
   const info = STATE.projectInfo;
+  const overallPct = calculateOverallProgress();
 
   container.innerHTML = `
     <div class="toolbar">
       <h2 style="font-size:18px;">${info.ProjectName || 'Project'} Dashboard</h2>
+      ${renderModeSwitcher()}
       <div class="spacer"></div>
       <button class="btn" onclick="openProjectInfoModal()">Edit project brief</button>
       <button class="btn" onclick="exportFullReport()">Export report</button>
@@ -822,54 +1025,15 @@ function renderDashboard(container) {
     </div>` : ''}
 
     <div class="stat-row">
-      <div class="stat-card">
+      <div class="stat-card hero-stat">
         <div class="label">Overall progress</div>
         <div class="value">${overallPct}%</div>
-        <div class="sub">${completed} of ${total} activities complete</div>
+        <div class="progress-track"><div class="progress-fill-bar" style="width:${overallPct}%;"></div></div>
       </div>
-      <div class="stat-card green">
-        <div class="label">On time</div>
-        <div class="value">${onTime}</div>
-        <div class="sub">activities tracking to plan</div>
-      </div>
-      <div class="stat-card red">
-        <div class="label">Delayed</div>
-        <div class="value">${delayed}</div>
-        <div class="sub">activities behind schedule</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="label">Ahead of schedule</div>
-        <div class="value">${ahead}</div>
-        <div class="sub">activities running ahead</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="label">Not started</div>
-        <div class="value">${notStarted}</div>
-        <div class="sub">activities pending kickoff</div>
-      </div>
+      <div id="dashboardModeStats" style="display:flex;gap:12px;flex:2;flex-wrap:wrap;"></div>
     </div>
 
-    <div class="grid grid-2">
-      <div class="card">
-        <h3>Progress by group <span style="float:right;font-weight:400;color:var(--text-faint);">% complete, weighted</span></h3>
-        <canvas id="chartGroupProgress" height="200"></canvas>
-      </div>
-      <div class="card">
-        <h3>Schedule health <span style="float:right;font-weight:400;color:var(--text-faint);">activity count</span></h3>
-        <canvas id="chartScheduleHealth" height="200"></canvas>
-      </div>
-    </div>
-
-    <div class="grid grid-2">
-      <div class="card">
-        <h3>Planned vs actual progress (S-curve)</h3>
-        <canvas id="chartSCurve" height="200"></canvas>
-      </div>
-      <div class="card">
-        <h3>BOQ value by group</h3>
-        <canvas id="chartBOQByGroup" height="200"></canvas>
-      </div>
-    </div>
+    <div id="dashboardModeBody"></div>
 
     <div class="grid grid-2">
       <div class="card">
@@ -895,6 +1059,96 @@ function renderDashboard(container) {
 
     <div class="grid grid-2">
       <div class="card">
+        <h3>Key features &amp; quality
+          <button class="btn sm" style="float:right;" onclick="openProjectInfoModal()">✎ Edit</button>
+        </h3>
+        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Key features:</b> ${info.KeyFeatures || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Quality points highlighted:</b> ${info.QualityPointsHighlighted || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+        <p style="color:var(--text-dim);"><b style="color:var(--text)">Punch list summary:</b> ${info.PunchListSummary || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+      </div>
+      <div class="card">
+        <h3>Site visits</h3>
+        <div id="siteVisitsList"></div>
+        <button class="btn sm" onclick="openSiteVisitModal()" style="margin-top:8px;">+ Add site visit record</button>
+      </div>
+    </div>
+
+    ${renderClosurePanel()}
+
+    <div class="card">
+      <h3>Upcoming &amp; active non-progress events</h3>
+      ${renderUpcomingEventsTable()}
+    </div>
+
+    ${mode === 'boq' ? `
+    <div class="card">
+      <h3>Pre-award stage (future link)</h3>
+      <p style="color:var(--text-dim);">
+        This section will link to a separate pre-award tracking dashboard (HTML file),
+        matched by Project Code <b>${info.ProjectCode || '(not set)'}</b> or Project Name
+        <b>${info.ProjectName || '(not set)'}</b>. Not yet active — placeholder for future integration.
+      </p>
+      <div id="preAwardSummary" style="margin-top:10px;"></div>
+    </div>` : ''}
+  `;
+
+  if (mode === 'breakup') {
+    renderBreakupModeDashboard();
+  } else {
+    renderBOQModeDashboard();
+  }
+
+  renderSiteVisitsList();
+  if (mode === 'boq') renderPreAwardSummary();
+}
+
+/* ---- BOQ / Activity mode: the full dashboard, as before ---- */
+function renderBOQModeDashboard() {
+  const acts = STATE.activities.filter(a => a.Type === 'task');
+  const total = acts.length;
+  const completed = acts.filter(a => Number(a.PercentComplete) >= 100).length;
+  const inProgress = acts.filter(a => Number(a.PercentComplete) > 0 && Number(a.PercentComplete) < 100).length;
+  const notStarted = total - completed - inProgress;
+  let delayed = 0, onTime = 0, ahead = 0;
+  acts.forEach(a => {
+    const st = getDelayStatus(a);
+    if (st.cls === 'delayed') delayed++;
+    else if (st.cls === 'ahead') ahead++;
+    else if (st.cls === 'on-time') onTime++;
+  });
+  const boqTotal = STATE.boq.reduce((s, b) => s + (Number(b.Amount) || 0), 0);
+  const weightBreakdown = getWeightBreakdown();
+
+  document.getElementById('dashboardModeStats').innerHTML = `
+    <div class="stat-card green"><div class="label">On time</div><div class="value">${onTime}</div><div class="sub">activities tracking to plan</div></div>
+    <div class="stat-card red"><div class="label">Delayed</div><div class="value">${delayed}</div><div class="sub">activities behind schedule</div></div>
+    <div class="stat-card blue"><div class="label">Ahead</div><div class="value">${ahead}</div><div class="sub">activities running ahead</div></div>
+    <div class="stat-card orange"><div class="label">Not started</div><div class="value">${notStarted}</div><div class="sub">activities pending</div></div>
+  `;
+
+  document.getElementById('dashboardModeBody').innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Progress by group <span style="float:right;font-weight:400;color:var(--text-faint);">% complete, weighted</span></h3>
+        <canvas id="chartGroupProgress" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>Schedule health <span style="float:right;font-weight:400;color:var(--text-faint);">activity count</span></h3>
+        <canvas id="chartScheduleHealth" height="200"></canvas>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Planned vs actual progress (S-curve)</h3>
+        <canvas id="chartSCurve" height="200"></canvas>
+      </div>
+      <div class="card">
+        <h3>BOQ value by group</h3>
+        <canvas id="chartBOQByGroup" height="200"></canvas>
+      </div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
         <h3>BOQ summary</h3>
         <table>
           <tr><td style="color:var(--text-dim)">Total BOQ items</td><td>${STATE.boq.length}</td></tr>
@@ -904,47 +1158,82 @@ function renderDashboard(container) {
         </table>
       </div>
       <div class="card">
-        <h3>Key features &amp; quality
-          <button class="btn sm" style="float:right;" onclick="openProjectInfoModal()">✎ Edit</button>
+        <h3>How is overall progress weighted?
+          <button class="btn sm" style="float:right;" onclick="setActiveView('chunks')">Manage Major Breakup</button>
         </h3>
-        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Key features:</b> ${info.KeyFeatures || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
-        <p style="color:var(--text-dim);margin-bottom:8px;"><b style="color:var(--text)">Quality points highlighted:</b> ${info.QualityPointsHighlighted || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
-        <p style="color:var(--text-dim);"><b style="color:var(--text)">Punch list summary:</b> ${info.PunchListSummary || '<span style="color:var(--text-faint)">click Edit to set</span>'}</p>
+        ${renderWeightBreakdownPanel(weightBreakdown)}
       </div>
     </div>
-
-    <div class="card">
-      <h3>How is overall progress weighted?
-        <button class="btn sm" style="float:right;" onclick="setActiveView('chunks')">Manage progress chunks</button>
-      </h3>
-      ${renderWeightBreakdownPanel(weightBreakdown)}
-    </div>
-
-    <div class="card">
-      <h3>Site visits</h3>
-      <div id="siteVisitsList"></div>
-      <button class="btn sm" onclick="openSiteVisitModal()" style="margin-top:8px;">+ Add site visit record</button>
-    </div>
-
-    <div class="card">
-      <h3>Upcoming &amp; active non-progress events</h3>
-      ${renderUpcomingEventsTable()}
-    </div>
-
-    <div class="card">
-      <h3>Pre-award stage (future link)</h3>
-      <p style="color:var(--text-dim);">
-        This section will link to a separate pre-award tracking dashboard (HTML file),
-        matched by Project Code <b>${info.ProjectCode || '(not set)'}</b> or Project Name
-        <b>${info.ProjectName || '(not set)'}</b>. Not yet active — placeholder for future integration.
-      </p>
-      <div id="preAwardSummary" style="margin-top:10px;"></div>
-    </div>
   `;
-  renderSiteVisitsList();
-  renderPreAwardSummary();
   renderDashboardCharts(acts);
 }
+
+/* ---- Major Breakup mode: simplified dashboard, floor/section-driven ---- */
+function renderBreakupModeDashboard() {
+  const chunks = STATE.progressChunks;
+  const totalWeight = chunks.reduce((s, c) => s + (Number(c.WeightPercent) || 0), 0);
+  const completeSections = chunks.filter(c => Number(c.PercentComplete) >= 100).length;
+  const floors = [...new Set(chunks.map(c => c.FloorOrZone || '(No floor set)'))];
+
+  document.getElementById('dashboardModeStats').innerHTML = `
+    <div class="stat-card blue"><div class="label">Sections defined</div><div class="value">${chunks.length}</div><div class="sub">across ${floors.length} floor${floors.length===1?'':'s'}/zone${floors.length===1?'':'s'}</div></div>
+    <div class="stat-card green"><div class="label">Sections complete</div><div class="value">${completeSections}</div><div class="sub">of ${chunks.length} at 100%</div></div>
+    <div class="stat-card ${Math.abs(totalWeight-100)<0.5?'green':'orange'}"><div class="label">Weight assigned</div><div class="value">${totalWeight.toFixed(0)}%</div><div class="sub">should total 100%</div></div>
+  `;
+
+  document.getElementById('dashboardModeBody').innerHTML = `
+    <div class="card">
+      <h3>Major Breakup — by floor / zone
+        <button class="btn sm primary" style="float:right;" onclick="setActiveView('chunks')">Open Major Breakup</button>
+      </h3>
+      <canvas id="chartBreakupByFloor" height="180"></canvas>
+    </div>
+    <div class="card">
+      <h3>Section progress</h3>
+      ${chunks.length === 0
+        ? `<div class="empty-state"><div class="icon">🧩</div>No sections defined yet. <button class="btn sm primary" onclick="setActiveView('chunks')">Set up Major Breakup</button></div>`
+        : renderBreakupSectionBars(chunks)}
+    </div>
+  `;
+  renderBreakupFloorChart(floors, chunks);
+}
+
+function renderBreakupSectionBars(chunks) {
+  return chunks.map(c => {
+    const pct = Number(c.PercentComplete) || 0;
+    const barColor = pct >= 100 ? '#2E7D32' : pct >= 50 ? '#3B82F6' : '#E65100';
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span><b>${c.FloorOrZone||''}</b> — ${c.SectionName||''} <span style="color:var(--text-faint);">(weight ${c.WeightPercent||0}%)</span></span>
+          <span style="color:var(--text-dim);">${pct}%${c.Notes ? ' · ' + c.Notes : ''}</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill-bar" style="width:${pct}%;background:${barColor};"></div></div>
+      </div>`;
+  }).join('');
+}
+
+let _breakupChartInstance = null;
+function renderBreakupFloorChart(floors, chunks) {
+  const ctx = document.getElementById('chartBreakupByFloor');
+  if (!ctx) return;
+  if (_breakupChartInstance) { _breakupChartInstance.destroy(); _breakupChartInstance = null; }
+  if (floors.length === 0) { ctx.parentElement.querySelector('canvas')?.remove(); return; }
+  Chart.defaults.color = '#8B949E';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+  const data = floors.map(f => {
+    const floorChunks = chunks.filter(c => (c.FloorOrZone||'(No floor set)') === f);
+    const w = floorChunks.reduce((s,c)=>s+(Number(c.WeightPercent)||0),0);
+    const weighted = floorChunks.reduce((s,c)=>s+(Number(c.WeightPercent)||0)*(Number(c.PercentComplete)||0),0);
+    return w > 0 ? +(weighted/w).toFixed(1) : 0;
+  });
+  _breakupChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: floors, datasets: [{ data, backgroundColor: '#3B82F6', borderRadius: 4, maxBarThickness: 36 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min:0, max:100, ticks:{ callback: v=>v+'%' } }, y: { grid: { display:false } } } }
+  });
+}
+
 
 /* ---- Dashboard charts ---- */
 let _dashboardChartInstances = [];
@@ -1078,9 +1367,9 @@ function renderWeightBreakdownPanel(breakdown) {
   const isComplete = boqWeightTotal > 0 || chunkWeightTotal > 0;
   let warning = '';
   if (chunkWeightTotal > 100) {
-    warning = `<div class="warn-box" style="margin-top:10px;"><h4>⚠ Chunk weights exceed 100%</h4><p>Your progress chunks currently total ${chunkWeightTotal}%, which is more than the whole project. Edit your chunks so they sum to 100% or less.</p></div>`;
+    warning = `<div class="warn-box" style="margin-top:10px;"><h4>⚠ Section weights exceed 100%</h4><p>Your Major Breakup sections currently total ${chunkWeightTotal}%, which is more than the whole project. Edit your sections so they sum to 100% or less.</p></div>`;
   } else if (!isComplete) {
-    warning = `<div class="warn-box" style="margin-top:10px;"><h4>No weighting set up yet</h4><p>Link BOQ items to activities, or add progress chunks, to get a properly weighted overall %. Until then, overall progress is a simple average of all activities.</p></div>`;
+    warning = `<div class="warn-box" style="margin-top:10px;"><h4>No weighting set up yet</h4><p>Link BOQ items to activities, or add Major Breakup sections, to get a properly weighted overall %. Until then, overall progress is a simple average of all activities.</p></div>`;
   }
   return `
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;">
@@ -1090,9 +1379,9 @@ function renderWeightBreakdownPanel(breakdown) {
         <div style="font-size:11px;color:var(--text-faint);">${boqWeighted.length} activities, weighted by BOQ amount</div>
       </div>
       <div style="flex:1;min-width:160px;">
-        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Judgmental chunks</div>
+        <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Major Breakup sections</div>
         <div style="font-size:22px;font-weight:700;color:#FFB74D;">${chunkWeightTotal.toFixed(1)}%</div>
-        <div style="font-size:11px;color:var(--text-faint);">${STATE.progressChunks.length} chunks, weighted manually</div>
+        <div style="font-size:11px;color:var(--text-faint);">${STATE.progressChunks.length} sections, weighted manually</div>
       </div>
       <div style="flex:1;min-width:160px;">
         <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;">Total weight pool</div>
@@ -2867,17 +3156,17 @@ async function saveOffDaysConfig() {
    ===================================================================== */
 /* =====================================================================
    PROGRESS CHUNKS VIEW
-   Judgmental, weighted progress for projects without (or alongside)
+   Simple weighted progress for projects without (or alongside)
    BOQ linking — grouped by floor/zone, each chunk carries its own
-   weight % and a free-text site note plus a single judgmental %.
+   weight % and a free-text site note plus a single site progress %.
    ===================================================================== */
 function renderProgressChunks(container) {
   const breakdown = getWeightBreakdown();
   container.innerHTML = `
     <div class="toolbar">
-      <h2 style="font-size:18px;">Progress chunks</h2>
+      <h2 style="font-size:18px;">Project Major Breakup</h2>
       <div class="spacer"></div>
-      <button class="btn primary" onclick="openChunkModal()">+ Add chunk</button>
+      <button class="btn primary" onclick="openChunkModal()">+ Add section</button>
     </div>
     <div class="card">
       <h3>Weight pool</h3>
@@ -2892,7 +3181,7 @@ function renderChunksByFloor() {
   const container = document.getElementById('chunksByFloor');
   if (!container) return;
   if (STATE.progressChunks.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">🧩</div>No progress chunks yet. Add one per floor and section — e.g. "Grey Structure, Ground Floor" — and give it a weight %.</div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">🧩</div>No Major Breakup sections yet. Add one per floor and section — e.g. "Grey Structure, Ground Floor" — and give it a weight %.</div>`;
     return;
   }
   const floors = [...new Set(STATE.progressChunks.map(c => c.FloorOrZone || '(No floor set)'))];
@@ -2926,7 +3215,7 @@ function openChunkModal(existingId) {
   const c = existingId ? STATE.progressChunks.find(x => x.ChunkID === existingId) : {};
   const existingFloors = [...new Set(STATE.progressChunks.map(x => x.FloorOrZone).filter(Boolean))];
   openModal(`
-    <h2>${existingId ? 'Edit' : 'Add'} progress chunk</h2>
+    <h2>${existingId ? 'Edit' : 'Add'} Major Breakup section</h2>
     <div class="field">
       <label>Floor / zone</label>
       <input id="chunkFloor" list="existingFloorsList" value="${c.FloorOrZone||''}" placeholder="e.g. Ground Floor, 1st Floor, Basement">
@@ -2935,7 +3224,7 @@ function openChunkModal(existingId) {
     <div class="field"><label>Section name</label><input id="chunkSection" value="${c.SectionName||''}" placeholder="e.g. Grey Structure, MEP, Finishes"></div>
     <div class="grid grid-2">
       <div class="field"><label>Weight % (of total project)</label><input type="number" min="0" max="100" step="0.1" id="chunkWeight" value="${c.WeightPercent||''}"></div>
-      <div class="field"><label>% Complete (judgmental)</label><input type="number" min="0" max="100" id="chunkPct" value="${c.PercentComplete||0}"></div>
+      <div class="field"><label>Site progress %</label><input type="number" min="0" max="100" id="chunkPct" value="${c.PercentComplete||0}"></div>
     </div>
     <div class="field"><label>Site note</label><input id="chunkNotes" value="${(c.Notes||'').replace(/"/g,'&quot;')}" placeholder="e.g. conduit work complete, fixtures pending"></div>
     <div class="actions">
@@ -2967,13 +3256,150 @@ async function quickUpdateChunk(chunkId, field, value) {
   if (res.success) { showToast('Updated', 'success'); renderChunksByFloor(); }
 }
 function confirmDeleteChunk(chunkId) {
-  confirmDialog('Delete this progress chunk? This cannot be undone.', async () => {
+  confirmDialog('Delete this Major Breakup section? This cannot be undone.', async () => {
     const res = await apiPost('deleteProgressChunk', { chunkId });
     if (res.success) {
       STATE.progressChunks = STATE.progressChunks.filter(c => c.ChunkID !== chunkId);
       showToast('Chunk deleted', 'success');
       renderChunksByFloor();
     }
+  });
+}
+
+/* =====================================================================
+   BILLING CYCLES
+   A project can have many payment cycles over its life. Whether the
+   "consultant submits to client" step appears, or is replaced by a
+   "client verifies" step, depends on whether THIS project is in-house
+   (you are the consultant) — detected from the ConsultantName field
+   containing "in-house" / "inhouse" / "in house", case-insensitive.
+   No separate setting needed; this was explicitly the simpler design.
+   ===================================================================== */
+function isInHouseProject() {
+  const consultant = (STATE.projectInfo.ConsultantName || '').toLowerCase().replace(/[\s-]/g, '');
+  return consultant.includes('inhouse');
+}
+
+function getBillingStepDefinitions() {
+  const inHouse = isInHouseProject();
+  const steps = [
+    { key: 'ContractorBillSubmittedDate', label: 'Contractor submitted bill' },
+  ];
+  if (inHouse) {
+    steps.push({ key: 'ClientVerifiedDate', label: 'Client verified' });
+  } else {
+    steps.push({ key: 'ConsultantSubmittedToClientDate', label: 'Consultant submitted to client' });
+  }
+  steps.push(
+    { key: 'ClientRequestedTaxInvoiceDate', label: 'Client requested sales tax invoice' },
+    { key: 'ContractorTaxInvoiceSubmittedDate', label: 'Contractor submitted tax invoice' },
+    { key: 'PaymentMadeDate', label: 'Payment made' }
+  );
+  return steps;
+}
+
+function renderBillingCycles(container) {
+  const inHouse = isInHouseProject();
+  const steps = getBillingStepDefinitions();
+  container.innerHTML = `
+    <div class="toolbar">
+      <h2 style="font-size:18px;">Contractor billing cycles</h2>
+      <span class="mode-pill" style="margin-left:0;">${inHouse ? '🏠 In-house consultant — 4-step cycle' : '🏢 External consultant — 5-step cycle'}</span>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="openBillingCycleModal()">+ Add payment cycle</button>
+    </div>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:14px;">
+      Each row tracks one bill/payment from submission through to payment received,
+      with days elapsed between each step calculated automatically.
+      ${inHouse ? 'This project is in-house, so the cycle is: bill submitted → client verified → tax invoice requested → tax invoice submitted → payment made.'
+                 : 'This project has an external consultant, so the cycle is: bill submitted → consultant forwards to client → tax invoice requested → tax invoice submitted → payment made.'}
+    </p>
+    <div id="billingCyclesTable"></div>
+  `;
+  renderBillingCyclesTable();
+}
+
+function daysBetweenSteps(dateA, dateB) {
+  if (!dateA || !dateB) return null;
+  return daysBetween(dateA, dateB);
+}
+
+function renderBillingCyclesTable() {
+  const container = document.getElementById('billingCyclesTable');
+  const steps = getBillingStepDefinitions();
+  const cycles = STATE.billingCycles.slice().sort((a,b) => new Date(b.CreatedAt) - new Date(a.CreatedAt));
+
+  if (cycles.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">💰</div>No payment cycles recorded yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = cycles.map(cycle => {
+    const stepRows = steps.map((step, idx) => {
+      const date = cycle[step.key];
+      const prevStep = idx > 0 ? steps[idx-1] : null;
+      const daysFromPrev = prevStep ? daysBetweenSteps(cycle[prevStep.key], date) : null;
+      return `
+        <div class="billing-step">
+          <div class="billing-step-label">${step.label}</div>
+          <div class="billing-step-date">${date ? fmtDate(date) : '<span style="color:var(--text-faint);">pending</span>'}</div>
+          ${daysFromPrev !== null ? `<div class="billing-step-days">${daysFromPrev >= 0 ? '+' : ''}${daysFromPrev}d</div>` : '<div class="billing-step-days"></div>'}
+        </div>`;
+    }).join('<div class="billing-step-arrow">→</div>');
+
+    const totalDays = (cycle.ContractorBillSubmittedDate && cycle.PaymentMadeDate)
+      ? daysBetweenSteps(cycle.ContractorBillSubmittedDate, cycle.PaymentMadeDate) : null;
+    const isPaid = !!cycle.PaymentMadeDate;
+
+    return `
+      <div class="card billing-cycle-card">
+        <h3>${cycle.CycleLabel || 'Payment cycle'}
+          ${cycle.Amount ? `<span style="color:var(--text-faint);font-weight:400;">— ${Number(cycle.Amount).toLocaleString()}</span>` : ''}
+          <span class="badge ${isPaid?'on-time':'notstarted'}" style="margin-left:8px;">${isPaid ? '✅ Paid' : '⏳ In progress'}</span>
+          ${totalDays !== null ? `<span style="color:var(--text-faint);font-weight:400;float:right;font-size:12px;">Total: ${totalDays} days bill-to-payment</span>` : ''}
+          <button class="btn sm" style="float:right;margin-right:10px;" onclick="openBillingCycleModal('${cycle.CycleID}')">edit</button>
+        </h3>
+        <div class="billing-steps-row">${stepRows}</div>
+        ${cycle.Notes ? `<p style="color:var(--text-dim);font-size:12px;margin-top:10px;">${cycle.Notes}</p>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function openBillingCycleModal(existingId) {
+  const c = existingId ? STATE.billingCycles.find(x => x.CycleID === existingId) : {};
+  const steps = getBillingStepDefinitions();
+  openModal(`
+    <h2>${existingId ? 'Edit' : 'Add'} payment cycle</h2>
+    <div class="grid grid-2">
+      <div class="field"><label>Cycle label</label><input id="bcLabel" value="${c.CycleLabel||''}" placeholder="e.g. Bill #3, RA Bill 5"></div>
+      <div class="field"><label>Amount</label><input type="number" id="bcAmount" value="${c.Amount||''}"></div>
+    </div>
+    ${steps.map(step => `
+      <div class="field"><label>${step.label}</label><input type="date" id="bc_${step.key}" value="${(c[step.key]||'').slice(0,10)}"></div>
+    `).join('')}
+    <div class="field"><label>Notes</label><textarea id="bcNotes" rows="2">${c.Notes||''}</textarea></div>
+    <div class="actions">
+      ${existingId ? `<button class="btn danger" onclick="confirmDeleteBillingCycle('${existingId}')" style="margin-right:auto;">Delete</button>` : ''}
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="guardedClick(event, () => saveBillingCycleModal('${existingId||''}'))">Save</button>
+    </div>
+  `);
+}
+async function saveBillingCycleModal(existingId) {
+  const steps = getBillingStepDefinitions();
+  const cycle = { CycleID: existingId || undefined, CycleLabel: document.getElementById('bcLabel').value, Amount: document.getElementById('bcAmount').value, Notes: document.getElementById('bcNotes').value };
+  steps.forEach(step => { cycle[step.key] = document.getElementById('bc_' + step.key).value; });
+  const res = await apiPost('saveBillingCycle', { user: STATE.user, cycle });
+  closeModal();
+  if (res.success) { showToast('Payment cycle saved', 'success'); await loadAll(); }
+  else showToast('Save failed: ' + (res.error||''), 'error');
+}
+function confirmDeleteBillingCycle(cycleId) {
+  confirmDialog('Delete this payment cycle? This cannot be undone.', async () => {
+    const res = await apiPost('deleteBillingCycle', { cycleId });
+    closeModal();
+    if (res.success) { showToast('Payment cycle deleted', 'success'); await loadAll(); }
+    else showToast(res.error || 'Could not delete', 'error');
   });
 }
 
