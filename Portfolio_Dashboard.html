@@ -8,6 +8,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0F1419">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HS Portfolio">
@@ -1283,21 +1284,29 @@ async function createPartnerPortalNow() {
   const res = await apiPost('createPartnerPortal', { name, portalType, user: 'portfolio-owner', projectKeys: [] });
   if (res.success) {
     showToast(`${portalType} portal created for ${name}`, 'success');
-    document.getElementById('newPortalName').value = '';
-    await refreshPartnerPortalsList();
+    // Reopen the modal fresh rather than patching the list in place —
+    // this matches the same reliable pattern used after saving project
+    // assignments below, and avoids a timing issue where the list
+    // container from the just-replaced modal HTML isn't ready yet.
+    await openPartnerPortalsModal();
+  } else {
+    showToast(res.error || 'Could not create portal', 'error');
   }
 }
 async function regeneratePartnerKey(portalId) {
   const res = await apiPost('regeneratePartnerPortalKey', { portalId });
-  if (res.success) { showToast('New link generated — old one no longer works', 'success'); await refreshPartnerPortalsList(); }
+  if (res.success) { showToast('New link generated — old one no longer works', 'success'); await openPartnerPortalsModal(); }
+  else showToast(res.error || 'Could not regenerate key', 'error');
 }
 async function revokePartnerPortal(portalId) {
   const res = await apiPost('revokePartnerPortal', { portalId });
-  if (res.success) { showToast('Portal access revoked', 'success'); await refreshPartnerPortalsList(); }
+  if (res.success) { showToast('Portal access revoked', 'success'); await openPartnerPortalsModal(); }
+  else showToast(res.error || 'Could not revoke', 'error');
 }
 async function restorePartnerPortal(portalId) {
   const res = await apiPost('restorePartnerPortal', { portalId });
-  if (res.success) { showToast('Portal access restored', 'success'); await refreshPartnerPortalsList(); }
+  if (res.success) { showToast('Portal access restored', 'success'); await openPartnerPortalsModal(); }
+  else showToast(res.error || 'Could not restore', 'error');
 }
 
 async function openAssignProjectsModal(portalId) {
