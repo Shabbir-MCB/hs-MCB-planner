@@ -83,7 +83,7 @@ input,select{font-family:inherit;background:var(--panel2);color:var(--text);bord
 const CONFIG = {
   PORTFOLIO_API_URL: 'https://script.google.com/macros/s/AKfycbwVQGx6-K2s226Une6s_L-zl2tPEsrMEIqgQcHRGY3l501-v7VIZEOovgq-5Ba_vKlkvA/exec',
   PROJECT_APP_URL: 'https://shabbir-mcb.github.io/hs-MCB-planner/Project_App.html',
-  PORTAL_KEY: new URLSearchParams(window.location.search).get('portalKey') || '',
+  PORTAL_KEY: new URLSearchParams(window.location.search).get('portalKey') || localStorage.getItem('hsp_portal_key') || '',
 };
 
 let STATE = { projects: [], portalType: '', name: '' };
@@ -113,17 +113,26 @@ function buildProjectOpenLink(p) {
 
 async function loadPortal() {
   if (!CONFIG.PORTAL_KEY) {
-    showDenied('No portal link provided', 'This page needs a portal key in its address. Ask the project owner for your personal portal link.');
+    showDenied('No portal link provided', 'This page needs a portal key in its address. Ask the project owner for your personal portal link, open it once in your browser, then use this installed icon from then on.');
     return;
   }
   const res = await apiGet('getPartnerPortalProjects', { portalKey: CONFIG.PORTAL_KEY });
   if (!res.success || !res.data.valid) {
+    // If the saved key was revoked, clear it so the icon doesn't keep
+    // silently retrying a dead key — surface the real reason instead.
+    if (res.data && res.data.revoked) localStorage.removeItem('hsp_portal_key');
     showDenied(
       res.data && res.data.revoked ? 'Access revoked' : 'Invalid link',
-      res.data && res.data.revoked ? 'This portal link has been revoked by the project owner.' : 'This link is not valid. Ask the project owner for the correct link.'
+      res.data && res.data.revoked ? 'This portal link has been revoked by the project owner. Ask them for a new one.' : 'This link is not valid. Ask the project owner for the correct link.'
     );
     return;
   }
+  // Remember this key for next time — this is what makes the installed
+  // home-screen icon work correctly even though its launch URL has no
+  // key in it: the FIRST real open (via the link you were sent) saves
+  // the key here, and every later tap of the icon reuses it.
+  localStorage.setItem('hsp_portal_key', CONFIG.PORTAL_KEY);
+
   STATE.projects = res.data.projects || [];
   STATE.portalType = res.data.portalType;
   STATE.name = res.data.name;
@@ -142,6 +151,11 @@ function showDenied(title, message) {
       <div>
         <h2>${title}</h2>
         <p>${message}</p>
+        <p style="margin-top:16px;font-size:12px;color:var(--text-faint);">
+          If you already installed this as an app icon and are seeing this after
+          tapping that icon: open your original link once more in a regular browser
+          tab, then come back to the icon — it will remember you from then on.
+        </p>
       </div>
     </div>`;
 }
