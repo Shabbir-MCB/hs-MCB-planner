@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Projects</title>
+<link rel="manifest" href="manifest-portal.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0F1419">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Projects">
+<style>
+:root{
+  --bg:#0F1419; --panel:#161B22; --panel2:#1C2128; --border:#2D333B;
+  --text:#E6EDF3; --text-dim:#8B949E; --text-faint:#6E7681;
+  --accent:#3B82F6; --green:#2E7D32; --red:#C62828; --orange:#E65100;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;padding-bottom:20px;}
+button{font-family:inherit;cursor:pointer;}
+input,select{font-family:inherit;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:9px 10px;font-size:14px;}
+
+#topbar{
+  background:linear-gradient(180deg,#181D24,#13171D);border-bottom:1px solid var(--border);
+  padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.3);
+}
+#topbar .logo{font-weight:700;font-size:17px;color:#fff;margin-bottom:4px;}
+#topbar .logo span{background:linear-gradient(90deg,#5B98F7,#3B82F6);-webkit-background-clip:text;background-clip:text;color:transparent;}
+#topbar .subtitle{font-size:12px;color:var(--text-dim);}
+
+.container{max-width:760px;margin:0 auto;padding:16px;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.toolbar input[type=search]{flex:1;min-width:140px;}
+.toolbar select{flex-shrink:0;}
+
+.stat-row{display:flex;gap:10px;margin-bottom:16px;}
+.stat-card{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.stat-card .label{font-size:10px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px;}
+.stat-card .value{font-size:22px;font-weight:700;color:#fff;}
+
+.project-card{
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s,transform 0.06s;
+}
+.project-card:hover{border-color:var(--accent);}
+.project-card:active{transform:scale(0.99);}
+.project-card .pname{font-size:15px;font-weight:700;margin-bottom:4px;}
+.project-card .pmeta{font-size:12px;color:var(--text-dim);margin-bottom:8px;}
+.progress-track{height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;}
+.progress-label{font-size:12px;color:var(--text-dim);margin-top:5px;display:flex;justify-content:space-between;}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-dim);}
+.empty-state .icon{font-size:36px;margin-bottom:10px;opacity:0.5;}
+
+#deniedScreen{display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;}
+#deniedScreen h2{color:#E57373;margin-bottom:10px;}
+#deniedScreen p{color:var(--text-dim);max-width:340px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <div class="logo">HS <span>My Projects</span></div>
+    <div class="subtitle" id="portalSubtitle">Loading…</div>
+  </div>
+  <div class="container">
+    <div class="stat-row" id="statRow"></div>
+    <div class="toolbar">
+      <input type="search" id="searchBox" placeholder="Search your projects…" oninput="renderProjectList()">
+      <select id="crossFilter" onchange="renderProjectList()"><option value="">All</option></select>
+    </div>
+    <div id="projectList"><div class="empty-state">Loading your projects…</div></div>
+  </div>
+</div>
+
+<script>
+const CONFIG = {
+  PORTFOLIO_API_URL: 'https://script.google.com/macros/s/AKfycbwVQGx6-K2s226Une6s_L-zl2tPEsrMEIqgQcHRGY3l501-v7VIZEOovgq-5Ba_vKlkvA/exec',
+  PROJECT_APP_URL: 'https://shabbir-mcb.github.io/hs-MCB-planner/Project_App.html',
+  PORTAL_KEY: new URLSearchParams(window.location.search).get('portalKey') || '',
+};
+
+let STATE = { projects: [], portalType: '', name: '' };
+
+async function apiGet(action, params) {
+  params = params || {};
+  const qs = new URLSearchParams({ action, ...params }).toString();
+  const res = await fetch(`${CONFIG.PORTFOLIO_API_URL}?${qs}`);
+  return res.json();
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt)) return '—';
+  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function buildProjectOpenLink(p) {
+  // Contractor portals open each project using that project's own
+  // ContractorLinkKey (same edit rights as their old per-project link).
+  // Consultant portals use the project's Supervisor-Edit key, since
+  // consultants reviewing/managing typically need the same edit level.
+  const key = STATE.portalType === 'Contractor' ? p.contractorLinkKey : p.clientEditLinkKey;
+  return `${CONFIG.PROJECT_APP_URL}?key=${key}`;
+}
+
+async function loadPortal() {
+  if (!CONFIG.PORTAL_KEY) {
+    showDenied('No portal link provided', 'This page needs a portal key in its address. Ask the project owner for your personal portal link.');
+    return;
+  }
+  const res = await apiGet('getPartnerPortalProjects', { portalKey: CONFIG.PORTAL_KEY });
+  if (!res.success || !res.data.valid) {
+    showDenied(
+      res.data && res.data.revoked ? 'Access revoked' : 'Invalid link',
+      res.data && res.data.revoked ? 'This portal link has been revoked by the project owner.' : 'This link is not valid. Ask the project owner for the correct link.'
+    );
+    return;
+  }
+  STATE.projects = res.data.projects || [];
+  STATE.portalType = res.data.portalType;
+  STATE.name = res.data.name;
+
+  document.getElementById('portalSubtitle').textContent =
+    `${STATE.portalType} portal — ${STATE.name} — ${STATE.projects.length} project${STATE.projects.length===1?'':'s'}`;
+
+  populateCrossFilter();
+  renderStats();
+  renderProjectList();
+}
+
+function showDenied(title, message) {
+  document.getElementById('app').innerHTML = `
+    <div id="deniedScreen">
+      <div>
+        <h2>${title}</h2>
+        <p>${message}</p>
+      </div>
+    </div>`;
+}
+
+function populateCrossFilter() {
+  const sel = document.getElementById('crossFilter');
+  if (STATE.portalType === 'Contractor') {
+    // contractors filter by which consultant a project is under
+    const consultants = [...new Set(STATE.projects.map(p => p.consultantName).filter(Boolean))].sort();
+    sel.innerHTML = `<option value="">All consultants</option>` + consultants.map(c => `<option value="${c}">${c}</option>`).join('');
+  } else {
+    // consultants filter by which contractor a project is under
+    const contractors = [...new Set(STATE.projects.map(p => p.contractorName).filter(Boolean))].sort();
+    sel.innerHTML = `<option value="">All contractors</option>` + contractors.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+}
+
+function renderStats() {
+  const total = STATE.projects.length;
+  const completed = STATE.projects.filter(p => p.liveSummary && p.liveSummary.isComplete).length;
+  const avgProgress = total > 0 ? (STATE.projects.reduce((s,p)=>s+(p.liveSummary?.overallPercent||0),0)/total).toFixed(0) : 0;
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-card"><div class="label">Total projects</div><div class="value">${total}</div></div>
+    <div class="stat-card"><div class="label">Completed</div><div class="value" style="color:#81C784;">${completed}</div></div>
+    <div class="stat-card"><div class="label">Avg progress</div><div class="value" style="color:#64B5F6;">${avgProgress}%</div></div>
+  `;
+}
+
+function renderProjectList() {
+  const search = (document.getElementById('searchBox').value || '').toLowerCase();
+  const crossFilter = document.getElementById('crossFilter').value;
+  let list = STATE.projects;
+  if (search) list = list.filter(p => (p.projectName||'').toLowerCase().includes(search) || (p.projectCode||'').toLowerCase().includes(search));
+  if (crossFilter) {
+    list = STATE.portalType === 'Contractor'
+      ? list.filter(p => p.consultantName === crossFilter)
+      : list.filter(p => p.contractorName === crossFilter);
+  }
+
+  const container = document.getElementById('projectList');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📁</div>No projects match.</div>`;
+    return;
+  }
+  container.innerHTML = list.map(p => {
+    const ls = p.liveSummary || {};
+    const pct = ls.overallPercent || 0;
+    const barColor = ls.isComplete ? '#2E7D32' : pct >= 60 ? '#3B82F6' : pct >= 25 ? '#FFB74D' : '#E57373';
+    const otherParty = STATE.portalType === 'Contractor' ? p.consultantName : p.contractorName;
+    return `
+      <div class="project-card" onclick="window.open('${buildProjectOpenLink(p)}','_blank')">
+        <div class="pname">${p.projectName}${p.projectCode ? ' — '+p.projectCode : ''}</div>
+        <div class="pmeta">${otherParty ? (STATE.portalType==='Contractor'?'Consultant: ':'Contractor: ')+otherParty : ''} · ${fmtDate(ls.plannedStart)} → ${fmtDate(ls.plannedFinish)}</div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        <div class="progress-label"><span>${pct}% complete</span><span>${ls.isComplete ? '✅ Completed' : '🔄 In progress'}</span></div>
+      </div>`;
+  }).join('');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (CONFIG.PORTFOLIO_API_URL.indexOf('PASTE_YOUR') === 0) {
+    showDenied('Setup required', 'CONFIG.PORTFOLIO_API_URL and CONFIG.PROJECT_APP_URL need to be set in this file before use.');
+    return;
+  }
+  loadPortal();
+});
+</script>
+</body>
+</html>
