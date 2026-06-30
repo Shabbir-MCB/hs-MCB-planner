@@ -521,6 +521,7 @@ function projectTypeCheckboxes(selectedTypes, idPrefix) {
 }
 
 function openCreateProjectModal() {
+  const projectNameOptions = STATE.classificationOptions.filter(o => o.OptionType === 'ProjectName').map(o => o.Value);
   const regionOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Region').map(o => o.Value);
   const circleOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Circle').map(o => o.Value);
   const contractorOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Contractor').map(o => o.Value);
@@ -531,7 +532,10 @@ function openCreateProjectModal() {
       This creates a brand-new Google Sheet with the full Activities/BOQ/Gantt
       structure already set up — no manual setup needed.
     </p>
-    <div class="field"><label>Project name</label><input id="npName" placeholder="e.g. DHA Phase 6 ABEP 2026"></div>
+    <div class="field"><label>Project name</label>
+      <input id="npName" list="npNameList" placeholder="e.g. DHA Phase 6 ABEP 2026">
+      <datalist id="npNameList">${projectNameOptions.map(n=>`<option value="${n}">`).join('')}</datalist>
+    </div>
     <div class="grid-2">
       <div class="field"><label>Project code</label><input id="npCode"></div>
       <div class="field">
@@ -604,6 +608,7 @@ async function createProject() {
 
 function openEditProjectModal(projectKey) {
   const p = STATE.projects.find(x => x.ProjectKey === projectKey);
+  const projectNameOptions = STATE.classificationOptions.filter(o => o.OptionType === 'ProjectName').map(o => o.Value);
   const regionOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Region').map(o => o.Value);
   const circleOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Circle').map(o => o.Value);
   const contractorOptions = STATE.classificationOptions.filter(o => o.OptionType === 'Contractor').map(o => o.Value);
@@ -611,7 +616,10 @@ function openEditProjectModal(projectKey) {
   const currentTypes = (p.ProjectTypes || '').split(',').map(s => s.trim()).filter(Boolean);
   openModal(`
     <h2>Edit project</h2>
-    <div class="field"><label>Project name</label><input id="epName" value="${p.ProjectName||''}"></div>
+    <div class="field"><label>Project name</label>
+      <input id="epName" list="epNameList" value="${p.ProjectName||''}">
+      <datalist id="epNameList">${projectNameOptions.map(n=>`<option value="${n}">`).join('')}</datalist>
+    </div>
     <div class="grid-2">
       <div class="field"><label>Project code</label><input id="epCode" value="${p.ProjectCode||''}"></div>
       <div class="field"><label>Status</label>
@@ -819,6 +827,7 @@ async function importFromExcel() {
   const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
   // Column name → OptionType mapping (covers common variations)
   const COL_MAP = [
+    { keys: ['Branch Name','Branch','Project Name','ProjectName','Project'], type: 'ProjectName' },
     { keys: ['Region'],                          type: 'Region'     },
     { keys: ['Circle'],                          type: 'Circle'     },
     { keys: ['Consultant / Architect','Consultant','Architect'], type: 'Consultant' },
