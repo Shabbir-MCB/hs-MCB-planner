@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0080)file:///E:/downloads/HS_Project_Planner%20V6%2026-06-26/Portfolio_Dashboard.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HS Project Portfolio</title>
-<link rel="manifest" href="manifest-portfolio.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="file:///E:/downloads/HS_Project_Planner%20V6%2026-06-26/manifest-portfolio.json">
+<link rel="icon" href="file:///E:/downloads/HS_Project_Planner%20V6%2026-06-26/icon-192.png">
+<link rel="apple-touch-icon" href="file:///E:/downloads/HS_Project_Planner%20V6%2026-06-26/icon-192.png">
 <meta name="theme-color" content="#0F1419">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -174,7 +174,7 @@ body.viewer-mode .btn[onclick*="openPartnerPortalsModal"]{
 <div id="topbar">
   <div class="logo">HS <span>Project Portfolio</span></div>
   <div style="flex:1;"></div>
-  <span id="apiStatus" class="pending">Connecting…</span>
+  <span id="apiStatus" class="err">Connection failed</span>
 </div>
 
 <div class="container">
@@ -215,7 +215,7 @@ body.viewer-mode .btn[onclick*="openPartnerPortalsModal"]{
       <thead><tr>
         <th>Project</th><th>Contractor</th><th>Supervisor</th><th>Start</th><th>Finish</th><th>Progress</th><th>Status</th><th></th><th></th>
       </tr></thead>
-      <tbody id="projectsTableBody"><tr><td colspan="7"><div class="empty-state">Loading…</div></td></tr></tbody>
+      <tbody id="projectsTableBody"><tr><td colspan="9"><div class="empty-state">Could not load projects.<br>Failed to fetch</div></td></tr></tbody>
     </table>
   </div>
 </div>
@@ -223,7 +223,7 @@ body.viewer-mode .btn[onclick*="openPartnerPortalsModal"]{
 <div class="toast-container" id="toastContainer"></div>
 <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="./Portfolio_Dashboard_files/jszip.min.js.download"></script>
 <script>
 const CONFIG = {
   PORTFOLIO_API_URL: 'https://script.google.com/macros/s/AKfycbwVQGx6-K2s226Une6s_L-zl2tPEsrMEIqgQcHRGY3l501-v7VIZEOovgq-5Ba_vKlkvA/exec',
@@ -1470,5 +1470,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadProjects();
 });
 </script>
-</body>
-</html>
+
+
+</body></html>
