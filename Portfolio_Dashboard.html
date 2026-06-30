@@ -779,9 +779,76 @@ function openReferenceListsModal() {
       <button class="btn sm ref-tab" data-type="Consultant" onclick="switchRefListTab('Consultant', event)">Consultant</button>
     </div>
     <div id="refListContent" style="margin-top:14px;"></div>
+    <details style="margin-top:16px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-dim);user-select:none;">
+        📥 Import from Excel file
+      </summary>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-dim);line-height:1.6;">
+        Pick your <strong>.xlsx</strong> file. The importer will read these columns automatically:
+        <code>Region</code>, <code>Circle</code>, <code>Consultant / Architect</code>, <code>Contractor / Vendor</code>.
+        All unique values are added — duplicates are skipped.
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <input type="file" id="xlsxImportFile" accept=".xlsx" style="font-size:12px;">
+        <button class="btn sm primary" onclick="importFromExcel()">Import</button>
+        <span id="xlsxImportStatus" style="font-size:12px;color:var(--text-dim);"></span>
+      </div>
+    </details>
     <div class="actions"><button class="btn primary" onclick="closeModal()">Done</button></div>
   `);
   renderRefListContent('Region');
+}
+async function importFromExcel() {
+  const fileInput = document.getElementById('xlsxImportFile');
+  const statusEl  = document.getElementById('xlsxImportStatus');
+  if (!fileInput || !fileInput.files.length) { alert('Please select an .xlsx file first.'); return; }
+  statusEl.textContent = 'Reading file…';
+  // Dynamically load SheetJS from CDN if not already loaded
+  if (!window.XLSX) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  const file = fileInput.files[0];
+  const buf  = await file.arrayBuffer();
+  const wb   = XLSX.read(buf, { type: 'array' });
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  // Column name → OptionType mapping (covers common variations)
+  const COL_MAP = [
+    { keys: ['Region'],                          type: 'Region'     },
+    { keys: ['Circle'],                          type: 'Circle'     },
+    { keys: ['Consultant / Architect','Consultant','Architect'], type: 'Consultant' },
+    { keys: ['Contractor / Vendor','Contractor','Vendor'],       type: 'Contractor' },
+  ];
+  const items = [];
+  const seen  = new Set();
+  rows.forEach(row => {
+    COL_MAP.forEach(({ keys, type }) => {
+      keys.forEach(k => {
+        const val = (row[k] || '').toString().trim();
+        if (val) {
+          const dedupeKey = type + '||' + val;
+          if (!seen.has(dedupeKey)) { seen.add(dedupeKey); items.push({ optionType: type, value: val }); }
+        }
+      });
+    });
+  });
+  if (!items.length) { statusEl.textContent = 'No matching columns found in this file.'; return; }
+  statusEl.textContent = `Sending ${items.length} values…`;
+  const res = await apiPost('bulkAddClassificationOptions', { items });
+  if (res.success) {
+    statusEl.textContent = `✅ Done — ${res.added} new value(s) added.`;
+    await loadClassificationOptions();
+    // refresh whichever tab is active
+    const activeTab = document.querySelector('.ref-tab.active');
+    if (activeTab) renderRefListContent(activeTab.dataset.type);
+  } else {
+    statusEl.textContent = '❌ Import failed: ' + (res.error || 'unknown error');
+  }
 }
 function switchRefListTab(type, event) {
   document.querySelectorAll('.ref-tab').forEach(b => b.classList.toggle('active', b.dataset.type === type));
