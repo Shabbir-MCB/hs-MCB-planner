@@ -1337,7 +1337,8 @@ function renderPartnerPortalsList(portals) {
               🔒 ${type} portal — ${p.Name} (${projectCount} project${projectCount===1?'':'s'})
             </div>
             <button class="btn sm" onclick="openAssignProjectsModal('${p.PortalID}')">Assign projects</button>
-            <button class="btn sm" onclick="copyLink('${link}')">Copy</button>
+            <button class="btn sm primary" onclick="window.open('${link}','_blank')">Open</button>
+            <button class="btn sm" onclick="copyLink('${link}')">Copy link</button>
             ${isActive
               ? `<button class="btn sm" onclick="guardedClick(event, () => regeneratePartnerKey('${p.PortalID}'))" title="Old link stops working immediately">↻</button>
                  <button class="btn sm danger" onclick="guardedClick(event, () => revokePartnerPortal('${p.PortalID}'))">Revoke</button>`
